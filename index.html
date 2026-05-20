@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="할일">
 <title>할 일 목록</title>
 <link rel="apple-touch-icon" id="appIcon">
@@ -418,8 +418,9 @@ select:focus { border-color:var(--blue); }
 @media (max-width:700px) {
   .sidebar { display:none; }
   .main {
-    padding: max(env(safe-area-inset-top, 20px), 20px) 14px 80px;
-    padding-top: calc(env(safe-area-inset-top, 0px) + 20px);
+    padding: 20px 14px 80px;
+    padding-top: 60px; /* iOS 상태바 기본 여백 */
+    padding-top: max(calc(env(safe-area-inset-top) + 16px), 60px);
   }
   .todo-columns { grid-template-columns:1fr 1fr; gap:8px; }
   .col-title { font-size:10px; letter-spacing:0; }
@@ -592,8 +593,9 @@ select:focus { border-color:var(--blue); }
         <span style="font-size:11px;color:rgba(255,255,255,0.5);">동기화 코드</span>
         <span id="mobileSyncCode" style="font-size:12px;font-weight:700;color:#c9a227;letter-spacing:1px;"></span>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;">
+      <div style="display:flex;align-items:center;gap:6px;">
         <span id="mobileSyncStatus" style="font-size:10px;color:rgba(255,255,255,0.5);">✓ 동기화됨</span>
+        <button onclick="manualSync()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);border-radius:6px;padding:3px 8px;font-size:13px;cursor:pointer;font-family:inherit;" title="새로고침">🔄</button>
         <button onclick="changeSyncCode()" style="background:rgba(201,162,39,0.2);border:1px solid rgba(201,162,39,0.4);color:#c9a227;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">변경</button>
       </div>
     </div>
@@ -751,6 +753,29 @@ function setSyncStatus(msg) {
 }
 
 function changeSyncCode() { doSignOut(); }
+
+function manualSync() {
+  if (!syncCode) return;
+  setSyncStatus('⟳ 동기화 중...');
+  fetch(FB_BASE + '/users/' + encodeURIComponent(syncCode) + '.json')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d && d.todos !== undefined) {
+        todos   = d.todos;
+        folders = d.folders || folders;
+        ideas   = d.ideas   || ideas;
+        localStorage.setItem('todos',   JSON.stringify(todos));
+        localStorage.setItem('folders', JSON.stringify(folders));
+        localStorage.setItem('ideas',   JSON.stringify(ideas));
+        lastPollTs = d.ts || Date.now();
+        setSyncStatus('✓ 동기화됨');
+        renderFolders(); renderTodos();
+        if (currentPage==='ideas') renderIdeas();
+      } else {
+        setSyncStatus('✓ 동기화됨');
+      }
+    }).catch(function() { setSyncStatus('⚠ 연결 실패'); });
+}
 
 function updateMobileBar(code) {
   var bar = document.getElementById('mobileSyncBar');
