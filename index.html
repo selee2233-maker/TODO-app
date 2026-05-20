@@ -705,19 +705,24 @@ select:focus { border-color:var(--blue); }
   </div>
 </div>
 
-<!-- 로그인 화면 -->
+<!-- 동기화 코드 입력 화면 -->
 <div id="authOverlay" style="position:fixed;inset:0;background:linear-gradient(135deg,#0a1628 0%,#0f2347 100%);display:flex;align-items:center;justify-content:center;z-index:9999;padding:24px;">
   <div style="text-align:center;max-width:300px;width:100%;">
     <div style="font-size:60px;margin-bottom:20px;filter:drop-shadow(0 4px 12px rgba(201,162,39,0.4));">✓</div>
     <h1 style="font-size:28px;font-weight:800;color:#fff;margin-bottom:10px;letter-spacing:-0.5px;">할일관리</h1>
-    <p style="color:rgba(255,255,255,0.45);font-size:13px;line-height:1.8;margin-bottom:40px;">Google 계정으로 로그인하면<br>맥과 아이폰이 자동으로 동기화됩니다</p>
-    <button onclick="signInWithGoogle()" style="background:linear-gradient(135deg,#c9a227,#8a6d1c);color:#fff;border:none;border-radius:14px;padding:16px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 6px 24px rgba(201,162,39,0.4);width:100%;letter-spacing:0.3px;">🔐 Google로 로그인</button>
-    <p id="authError" style="color:#ef4444;font-size:12px;margin-top:14px;display:none;"></p>
+    <p style="color:rgba(255,255,255,0.45);font-size:13px;line-height:1.8;margin-bottom:28px;">동기화 코드를 입력하면<br>맥과 아이폰이 자동으로 연결됩니다</p>
+    <input id="syncCodeInput" type="text" placeholder="나만의 동기화 코드 입력"
+      style="width:100%;padding:14px 16px;border-radius:12px;border:2px solid rgba(201,162,39,0.4);background:rgba(255,255,255,0.07);color:#fff;font-size:16px;font-family:inherit;outline:none;text-align:center;margin-bottom:12px;letter-spacing:1px;"
+      onkeydown="if(event.key==='Enter') startSync()" />
+    <button onclick="startSync()" style="background:linear-gradient(135deg,#c9a227,#8a6d1c);color:#fff;border:none;border-radius:14px;padding:16px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 6px 24px rgba(201,162,39,0.4);width:100%;letter-spacing:0.3px;">시작하기</button>
+    <p style="color:rgba(255,255,255,0.3);font-size:11px;margin-top:16px;line-height:1.6;">모든 기기에서 같은 코드를 입력하면 동기화됩니다<br>코드는 기억하기 쉬운 단어를 사용하세요</p>
+    <p id="authError" style="color:#ef4444;font-size:12px;margin-top:10px;display:none;"></p>
   </div>
 </div>
 
 <script>
 // ── Firebase 초기화 ──
+// ── Firebase 초기화 (Auth 없이 Firestore만 사용) ──
 var firebaseConfig = {
   apiKey: "AIzaSyCo-pBrPKsqJzBv4y-q9D5u0QtgiXRljfg",
   authDomain: "todo-e7d6a.firebaseapp.com",
@@ -727,23 +732,31 @@ var firebaseConfig = {
   appId: "1:1092836772189:web:3e747dce5516858d6740b4"
 };
 firebase.initializeApp(firebaseConfig);
-var fbAuth  = firebase.auth();
 var fbDb    = firebase.firestore();
-var fbUser  = null;
 var fbUnsub = null;
-var fbLoaded   = false;
+var fbLoaded    = false;
 var startupDone = false;
+var syncCode    = null;
 
-function signInWithGoogle() {
-  var provider = new firebase.auth.GoogleAuthProvider();
-  fbAuth.signInWithPopup(provider).catch(function(e) {
+function startSync() {
+  var code = (document.getElementById('syncCodeInput').value || '').trim().toLowerCase().replace(/\s+/g,'-');
+  if (!code) {
     var el = document.getElementById('authError');
-    if (el) { el.style.display='block'; el.textContent='로그인 오류: '+e.message; }
-  });
+    if (el) { el.style.display='block'; el.textContent='코드를 입력해주세요'; }
+    return;
+  }
+  localStorage.setItem('syncCode', code);
+  applySyncCode(code);
 }
+
 function doSignOut() {
   if (fbUnsub) { fbUnsub(); fbUnsub = null; }
-  fbAuth.signOut();
+  localStorage.removeItem('syncCode');
+  syncCode = null;
+  document.getElementById('authOverlay').style.display = 'flex';
+  var si = document.getElementById('sidebarUser');
+  if (si) si.style.display = 'none';
+  fbLoaded = false; startupDone = false;
 }
 
 function setSyncStatus(msg) {
@@ -752,19 +765,28 @@ function setSyncStatus(msg) {
 }
 
 function saveToFirestore() {
-  if (!fbUser) return;
+  if (!syncCode) return;
   setSyncStatus('⟳ 저장 중...');
-  fbDb.collection('users').doc(fbUser.uid).collection('appData').doc('main')
+  fbDb.collection('syncData').doc(syncCode)
     .set({ todos: todos, folders: folders, ideas: ideas,
            updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
     .then(function() { setSyncStatus('✓ 동기화됨'); })
     .catch(function(e) { setSyncStatus('⚠ 저장 실패'); console.error(e); });
 }
 
-function loadFromFirestore() {
-  if (!fbUser) return;
+function applySyncCode(code) {
+  syncCode = code;
+  document.getElementById('authOverlay').style.display = 'none';
+  var si = document.getElementById('sidebarUser');
+  if (si) si.style.display = 'block';
+  var nm = document.getElementById('userNameDisplay');
+  var em = document.getElementById('userEmailDisplay');
+  var av = document.getElementById('userAvatar');
+  if (nm) nm.textContent = '동기화 코드';
+  if (em) em.textContent = code;
+  if (av) av.style.display = 'none';
   if (fbUnsub) fbUnsub();
-  fbUnsub = fbDb.collection('users').doc(fbUser.uid).collection('appData').doc('main')
+  fbUnsub = fbDb.collection('syncData').doc(syncCode)
     .onSnapshot(function(doc) {
       if (doc.exists) {
         var d = doc.data();
@@ -776,8 +798,7 @@ function loadFromFirestore() {
         localStorage.setItem('ideas',   JSON.stringify(ideas));
         setSyncStatus('✓ 동기화됨');
       } else {
-        // Firestore에 데이터 없음 → 로컬 데이터 업로드
-        saveToFirestore();
+        saveToFirestore(); // 첫 접속: 로컬 데이터 Firestore에 업로드
       }
       if (!fbLoaded) {
         fbLoaded = true;
@@ -789,30 +810,13 @@ function loadFromFirestore() {
     }, function(e) { setSyncStatus('⚠ 연결 오류'); console.error(e); });
 }
 
-fbAuth.onAuthStateChanged(function(user) {
-  fbUser = user;
-  if (user) {
-    document.getElementById('authOverlay').style.display = 'none';
-    var si = document.getElementById('sidebarUser');
-    if (si) si.style.display = 'block';
-    var av = document.getElementById('userAvatar');
-    var nm = document.getElementById('userNameDisplay');
-    var em = document.getElementById('userEmailDisplay');
-    if (av && user.photoURL) av.src = user.photoURL;
-    if (nm) nm.textContent = user.displayName || '';
-    if (em) em.textContent = user.email || '';
-    loadFromFirestore();
-  } else {
-    document.getElementById('authOverlay').style.display = 'flex';
-    var si = document.getElementById('sidebarUser');
-    if (si) si.style.display = 'none';
-    fbLoaded = false;
-    if (fbUnsub) { fbUnsub(); fbUnsub = null; }
-  }
-});
-
-// Firebase가 느리거나 오프라인일 경우 로컬 데이터로 폴백 (3초 후)
-setTimeout(function() { if (!startupDone) runStartup(); }, 3000);
+// 저장된 코드가 있으면 자동 연결
+var savedCode = localStorage.getItem('syncCode');
+if (savedCode) {
+  applySyncCode(savedCode);
+} else {
+  setTimeout(function() { if (!startupDone) runStartup(); }, 3000);
+}
 
 // 앱 아이콘
 var cv = document.createElement('canvas'); cv.width = cv.height = 180;
