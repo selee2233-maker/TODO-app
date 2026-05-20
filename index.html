@@ -422,7 +422,7 @@ select:focus { border-color:var(--blue); }
     padding-top: 60px; /* iOS 상태바 기본 여백 */
     padding-top: max(calc(env(safe-area-inset-top) + 16px), 60px);
   }
-  .todo-columns { grid-template-columns:1fr 1fr; gap:8px; }
+  .todo-columns { grid-template-columns:1fr; gap:16px; }
   .col-title { font-size:10px; letter-spacing:0; }
   .col-count { font-size:9px; padding:1px 6px; }
   .toggle-done-btn { font-size:9px; padding:3px 7px; white-space:nowrap; }
@@ -433,7 +433,6 @@ select:focus { border-color:var(--blue); }
   .main-header h1 { font-size:20px; }
 }
 @media (max-width:400px) {
-  .todo-columns { grid-template-columns:1fr 1fr; gap:6px; }
   .col-header { flex-direction:column; align-items:flex-start; gap:4px; }
 }
 
