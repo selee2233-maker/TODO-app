@@ -935,7 +935,7 @@ var pOrder        = {'높음':0,'보통':1,'낮음':2};
 var listType      = 'date';
 var openSubLists  = new Set();
 var openDetails   = new Set();
-var openMonths    = new Set([new Date().getFullYear()+'-'+(function(){var m=new Date().getMonth()+1;return m<10?'0'+m:String(m);})() ]);
+var openMonths    = new Set(); // 최초에는 모든 월 그룹 닫혀있음
 
 function selectListType(type, btn) {
   listType = type;
