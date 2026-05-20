@@ -549,9 +549,7 @@ select:focus { border-color:var(--blue); }
 .idea-input-content:focus { border-color:var(--blue); background:#fff; }
 </style>
 <meta name="theme-color" content="#0a1628">
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<!-- Firebase 제거 → JSONBlob 사용 (설정 불필요) -->
 </head>
 <body>
 <div class="layout">
@@ -721,22 +719,19 @@ select:focus { border-color:var(--blue); }
 </div>
 
 <script>
-// ── Firebase 초기화 ──
-// ── Firebase 초기화 (Auth 없이 Firestore만 사용) ──
-var firebaseConfig = {
-  apiKey: "AIzaSyCo-pBrPKsqJzBv4y-q9D5u0QtgiXRljfg",
-  authDomain: "todo-e7d6a.firebaseapp.com",
-  projectId: "todo-e7d6a",
-  storageBucket: "todo-e7d6a.firebasestorage.app",
-  messagingSenderId: "1092836772189",
-  appId: "1:1092836772189:web:3e747dce5516858d6740b4"
-};
-firebase.initializeApp(firebaseConfig);
-var fbDb    = firebase.firestore();
-var fbUnsub = null;
+// ── JSONBlob 동기화 (Firebase 불필요) ──
+var REGISTRY_ID = '019e445c-f7ef-7a11-92b8-a39d82d2496f';
+var BLOB_BASE   = 'https://jsonblob.com/api/jsonBlob/';
+var syncCode    = null;
+var syncBlobId  = null;
+var syncPollTimer = null;
 var fbLoaded    = false;
 var startupDone = false;
-var syncCode    = null;
+
+function setSyncStatus(msg) {
+  var el = document.getElementById('syncStatus');
+  if (el) el.textContent = msg;
+}
 
 function startSync() {
   var code = (document.getElementById('syncCodeInput').value || '').trim().toLowerCase().replace(/\s+/g,'-');
@@ -750,28 +745,30 @@ function startSync() {
 }
 
 function doSignOut() {
-  if (fbUnsub) { fbUnsub(); fbUnsub = null; }
+  clearInterval(syncPollTimer);
   localStorage.removeItem('syncCode');
-  syncCode = null;
+  syncCode = null; syncBlobId = null;
   document.getElementById('authOverlay').style.display = 'flex';
   var si = document.getElementById('sidebarUser');
   if (si) si.style.display = 'none';
   fbLoaded = false; startupDone = false;
 }
 
-function setSyncStatus(msg) {
-  var el = document.getElementById('syncStatus');
-  if (el) el.textContent = msg;
+function saveToCloud() {
+  if (!syncBlobId) return;
+  setSyncStatus('⟳ 저장 중...');
+  fetch(BLOB_BASE + syncBlobId, {
+    method: 'PUT',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ todos:todos, folders:folders, ideas:ideas, ts: Date.now() })
+  }).then(function(r) {
+    setSyncStatus(r.ok ? '✓ 동기화됨' : '⚠ 저장 실패');
+  }).catch(function() { setSyncStatus('⚠ 오프라인'); });
 }
 
-function saveToFirestore() {
-  if (!syncCode) return;
-  setSyncStatus('⟳ 저장 중...');
-  fbDb.collection('syncData').doc(syncCode)
-    .set({ todos: todos, folders: folders, ideas: ideas,
-           updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
-    .then(function() { setSyncStatus('✓ 동기화됨'); })
-    .catch(function(e) { setSyncStatus('⚠ 저장 실패'); console.error(e); });
+function loadAndStart() {
+  if (!fbLoaded) { fbLoaded = true; runStartup(); }
+  else { renderFolders(); renderTodos(); if (currentPage==='ideas') renderIdeas(); }
 }
 
 function applySyncCode(code) {
@@ -785,33 +782,76 @@ function applySyncCode(code) {
   if (nm) nm.textContent = '동기화 코드';
   if (em) em.textContent = code;
   if (av) av.style.display = 'none';
-  if (fbUnsub) fbUnsub();
-  fbUnsub = fbDb.collection('syncData').doc(syncCode)
-    .onSnapshot(function(doc) {
-      if (doc.exists) {
-        var d = doc.data();
-        if (d.todos   !== undefined) todos   = d.todos;
-        if (d.folders !== undefined) folders = d.folders;
-        if (d.ideas   !== undefined) ideas   = d.ideas;
-        localStorage.setItem('todos',   JSON.stringify(todos));
-        localStorage.setItem('folders', JSON.stringify(folders));
-        localStorage.setItem('ideas',   JSON.stringify(ideas));
-        setSyncStatus('✓ 동기화됨');
+  setSyncStatus('⟳ 연결 중...');
+
+  fetch(BLOB_BASE + REGISTRY_ID)
+    .then(function(r){ return r.json(); })
+    .then(function(registry) {
+      registry = registry || {};
+      if (registry[code]) {
+        syncBlobId = registry[code];
+        // 기존 데이터 다운로드
+        fetch(BLOB_BASE + syncBlobId).then(function(r){ return r.json(); })
+          .then(function(d) {
+            if (d && d.todos !== undefined) {
+              todos   = d.todos;
+              folders = d.folders || folders;
+              ideas   = d.ideas   || ideas;
+              localStorage.setItem('todos',   JSON.stringify(todos));
+              localStorage.setItem('folders', JSON.stringify(folders));
+              localStorage.setItem('ideas',   JSON.stringify(ideas));
+              setSyncStatus('✓ 동기화됨');
+            }
+            loadAndStart(); startPolling();
+          }).catch(function() { loadAndStart(); startPolling(); });
       } else {
-        // Firestore에 데이터 없음 → 로컬에 의미있는 데이터가 있을 때만 업로드
-        // (빈 iPhone 데이터로 맥 데이터를 덮어쓰는 것 방지)
-        if (todos.length > 0 || ideas.length > 0) {
-          saveToFirestore();
+        // 신규 → 현재 데이터로 블롭 생성
+        fetch(BLOB_BASE, {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ todos:todos, folders:folders, ideas:ideas, ts: Date.now() })
+        }).then(function(r) {
+          syncBlobId = r.headers.get('Location').split('/').pop();
+          registry[code] = syncBlobId;
+          return fetch(BLOB_BASE + REGISTRY_ID, {
+            method: 'PUT', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(registry)
+          });
+        }).then(function() {
+          setSyncStatus('✓ 동기화됨');
+          loadAndStart(); startPolling();
+        }).catch(function(e) { setSyncStatus('⚠ 오류'); loadAndStart(); });
+      }
+    }).catch(function() {
+      setSyncStatus('⚠ 연결 실패');
+      if (!startupDone) runStartup();
+    });
+}
+
+// 30초마다 다른 기기 변경 감지
+var lastPollTs = 0;
+function startPolling() {
+  clearInterval(syncPollTimer);
+  syncPollTimer = setInterval(function() {
+    if (!syncBlobId) return;
+    fetch(BLOB_BASE + syncBlobId).then(function(r){ return r.json(); })
+      .then(function(d) {
+        if (d && d.ts && d.ts > lastPollTs) {
+          lastPollTs = d.ts;
+          if (d.todos !== undefined) {
+            todos   = d.todos;
+            folders = d.folders || folders;
+            ideas   = d.ideas   || ideas;
+            localStorage.setItem('todos',   JSON.stringify(todos));
+            localStorage.setItem('folders', JSON.stringify(folders));
+            localStorage.setItem('ideas',   JSON.stringify(ideas));
+            setSyncStatus('✓ 동기화됨');
+            renderFolders(); renderTodos();
+            if (currentPage==='ideas') renderIdeas();
+          }
         }
-      }
-      if (!fbLoaded) {
-        fbLoaded = true;
-        runStartup();
-      } else {
-        renderFolders(); renderTodos();
-        if (currentPage === 'ideas') renderIdeas();
-      }
-    }, function(e) { setSyncStatus('⚠ 연결 오류'); console.error(e); });
+      }).catch(function(){});
+  }, 30000);
 }
 
 // 저장된 코드가 있으면 자동 연결
@@ -904,7 +944,7 @@ function save() {
   localStorage.setItem('folders', JSON.stringify(folders));
   localStorage.setItem('todos',   JSON.stringify(todos));
   localStorage.setItem('ideas',   JSON.stringify(ideas));
-  saveToFirestore();
+  saveToCloud();
 }
 
 // ── 페이지 전환 ──
