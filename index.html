@@ -417,16 +417,22 @@ select:focus { border-color:var(--blue); }
 
 @media (max-width:700px) {
   .sidebar { display:none; }
-  .main { padding:20px 14px 60px; }
-  .todo-columns { grid-template-columns:1fr 1fr; gap:10px; }
-  .col-title { font-size:10px; }
-  .toggle-done-btn { font-size:9px; padding:3px 8px; }
+  .main {
+    padding: max(env(safe-area-inset-top, 20px), 20px) 14px 80px;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 20px);
+  }
+  .todo-columns { grid-template-columns:1fr 1fr; gap:8px; }
+  .col-title { font-size:10px; letter-spacing:0; }
+  .col-count { font-size:9px; padding:1px 6px; }
+  .toggle-done-btn { font-size:9px; padding:3px 7px; white-space:nowrap; }
+  .col-header { flex-wrap:wrap; gap:4px; margin-bottom:8px; }
   .card-title { font-size:12px; }
   .card-main { padding:10px 11px; }
-  .card { padding:14px; }
+  .card { padding:12px; }
   .main-header h1 { font-size:20px; }
 }
 @media (max-width:400px) {
+  .todo-columns { grid-template-columns:1fr 1fr; gap:6px; }
   .col-header { flex-direction:column; align-items:flex-start; gap:4px; }
 }
 
@@ -624,8 +630,8 @@ select:focus { border-color:var(--blue); }
       <div>
         <div class="col-header">
           <div class="col-title">📅 Daily Works <span class="col-count" id="dateCount">0</span></div>
-          <div style="display:flex;gap:6px;align-items:center;">
-            <button id="refreshBtn" class="toggle-done-btn" onclick="manualCarryOver()" title="이월 새로고침">🔄</button>
+          <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
+            <button id="refreshBtn" class="toggle-done-btn" onclick="manualCarryOver()" title="이월 새로고침" style="padding:3px 7px;">🔄</button>
             <button class="toggle-done-btn" onclick="toggleShow('date',this)">완료 숨기기</button>
           </div>
         </div>
