@@ -170,7 +170,8 @@ body {
 .date-wrap input[type="date"] {
   flex:1; border:none; outline:none; font-size:13px; color:var(--text);
   background:transparent; font-family:inherit; padding:0!important;
-  border-bottom:none!important; font-weight:500; -webkit-appearance:none;
+  border-bottom:none!important; font-weight:500;
+  min-width:0; cursor:pointer;
 }
 .date-clear {
   background:none; border:none; color:#b0c0d8; cursor:pointer;
@@ -618,10 +619,10 @@ select:focus { border-color:var(--blue); }
       <input type="text" id="todoInput" placeholder="할 일 제목 (선택 — 날짜가 제목이 됩니다)" />
       <div class="detail-hint">📋 세부 할 일은 줄바꿈으로 구분하면 체크리스트가 됩니다</div>
       <textarea id="detailInput" placeholder="예)&#10;보고서 작성&#10;이메일 답장&#10;미팅 준비"></textarea>
-      <div class="date-wrap" id="dateWrap">
+      <div class="date-wrap" id="dateWrap" onclick="document.getElementById('dateInput').showPicker ? document.getElementById('dateInput').showPicker() : document.getElementById('dateInput').focus()">
         <span class="date-icon">📅</span>
-        <input type="date" id="dateInput" />
-        <button class="date-clear" onclick="document.getElementById('dateInput').value=''">×</button>
+        <input type="date" id="dateInput" onclick="event.stopPropagation()" />
+        <button class="date-clear" onclick="event.stopPropagation(); document.getElementById('dateInput').value=''">×</button>
       </div>
       <div class="input-row">
         <select id="folderSelect"></select>
