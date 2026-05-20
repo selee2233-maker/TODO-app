@@ -730,14 +730,12 @@ select:focus { border-color:var(--blue); }
 </div>
 
 <script>
-// ── JSONBlob 동기화 (Firebase 불필요) ──
-var REGISTRY_ID = '019e445c-f7ef-7a11-92b8-a39d82d2496f';
-var BLOB_BASE   = 'https://jsonblob.com/api/jsonBlob/';
-var syncCode    = null;
-var syncBlobId  = null;
+// ── Firebase Realtime Database 동기화 ──
+var FB_BASE = 'https://todo-e7d6a-default-rtdb.firebaseio.com';
+var syncCode      = null;
 var syncPollTimer = null;
-var fbLoaded    = false;
-var startupDone = false;
+var fbLoaded      = false;
+var startupDone   = false;
 
 function setSyncStatus(msg) {
   var el = document.getElementById('syncStatus');
@@ -746,13 +744,11 @@ function setSyncStatus(msg) {
   if (mel) mel.textContent = msg;
 }
 
-function changeSyncCode() {
-  doSignOut();
-}
+function changeSyncCode() { doSignOut(); }
 
 function updateMobileBar(code) {
-  var bar  = document.getElementById('mobileSyncBar');
-  var cEl  = document.getElementById('mobileSyncCode');
+  var bar = document.getElementById('mobileSyncBar');
+  var cEl = document.getElementById('mobileSyncCode');
   if (bar) bar.style.display = window.innerWidth <= 700 ? 'flex' : 'none';
   if (cEl) cEl.textContent = code;
 }
@@ -775,7 +771,7 @@ function startSync() {
 function doSignOut() {
   clearInterval(syncPollTimer);
   localStorage.removeItem('syncCode');
-  syncCode = null; syncBlobId = null;
+  syncCode = null;
   document.getElementById('authOverlay').style.display = 'flex';
   var si = document.getElementById('sidebarUser');
   if (si) si.style.display = 'none';
@@ -783,9 +779,9 @@ function doSignOut() {
 }
 
 function saveToCloud() {
-  if (!syncBlobId) return;
+  if (!syncCode) return;
   setSyncStatus('⟳ 저장 중...');
-  fetch(BLOB_BASE + syncBlobId, {
+  fetch(FB_BASE + '/users/' + encodeURIComponent(syncCode) + '.json', {
     method: 'PUT',
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ todos:todos, folders:folders, ideas:ideas, ts: Date.now() })
@@ -813,44 +809,28 @@ function applySyncCode(code) {
   updateMobileBar(code);
   setSyncStatus('⟳ 연결 중...');
 
-  fetch(BLOB_BASE + REGISTRY_ID)
-    .then(function(r){ return r.json(); })
-    .then(function(registry) {
-      registry = registry || {};
-      if (registry[code]) {
-        syncBlobId = registry[code];
-        // 기존 데이터 다운로드
-        fetch(BLOB_BASE + syncBlobId).then(function(r){ return r.json(); })
-          .then(function(d) {
-            if (d && d.todos !== undefined) {
-              todos   = d.todos;
-              folders = d.folders || folders;
-              ideas   = d.ideas   || ideas;
-              localStorage.setItem('todos',   JSON.stringify(todos));
-              localStorage.setItem('folders', JSON.stringify(folders));
-              localStorage.setItem('ideas',   JSON.stringify(ideas));
-              setSyncStatus('✓ 동기화됨');
-            }
-            loadAndStart(); startPolling();
-          }).catch(function() { loadAndStart(); startPolling(); });
+  fetch(FB_BASE + '/users/' + encodeURIComponent(code) + '.json')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d && d.todos !== undefined) {
+        // 기존 데이터 있음 → 다운로드
+        todos   = d.todos;
+        folders = d.folders || folders;
+        ideas   = d.ideas   || ideas;
+        localStorage.setItem('todos',   JSON.stringify(todos));
+        localStorage.setItem('folders', JSON.stringify(folders));
+        localStorage.setItem('ideas',   JSON.stringify(ideas));
+        setSyncStatus('✓ 동기화됨');
       } else {
-        // 신규 → 현재 데이터로 블롭 생성
-        fetch(BLOB_BASE, {
-          method: 'POST',
+        // 신규 코드 → 현재 데이터 업로드
+        fetch(FB_BASE + '/users/' + encodeURIComponent(code) + '.json', {
+          method: 'PUT',
           headers: {'Content-Type':'application/json'},
           body: JSON.stringify({ todos:todos, folders:folders, ideas:ideas, ts: Date.now() })
-        }).then(function(r) {
-          syncBlobId = r.headers.get('Location').split('/').pop();
-          registry[code] = syncBlobId;
-          return fetch(BLOB_BASE + REGISTRY_ID, {
-            method: 'PUT', headers: {'Content-Type':'application/json'},
-            body: JSON.stringify(registry)
-          });
-        }).then(function() {
-          setSyncStatus('✓ 동기화됨');
-          loadAndStart(); startPolling();
-        }).catch(function(e) { setSyncStatus('⚠ 오류'); loadAndStart(); });
+        }).then(function() { setSyncStatus('✓ 동기화됨'); })
+          .catch(function() { setSyncStatus('⚠ 저장 실패'); });
       }
+      loadAndStart(); startPolling();
     }).catch(function() {
       setSyncStatus('⚠ 연결 실패');
       if (!startupDone) runStartup();
@@ -862,8 +842,9 @@ var lastPollTs = 0;
 function startPolling() {
   clearInterval(syncPollTimer);
   syncPollTimer = setInterval(function() {
-    if (!syncBlobId) return;
-    fetch(BLOB_BASE + syncBlobId).then(function(r){ return r.json(); })
+    if (!syncCode) return;
+    fetch(FB_BASE + '/users/' + encodeURIComponent(syncCode) + '.json')
+      .then(function(r) { return r.json(); })
       .then(function(d) {
         if (d && d.ts && d.ts > lastPollTs) {
           lastPollTs = d.ts;
