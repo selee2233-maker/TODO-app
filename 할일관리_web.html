@@ -1,0 +1,1735 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="할일">
+<title>할 일 목록</title>
+<link rel="apple-touch-icon" id="appIcon">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --blue:      #b8952a;
+  --blue-dark: #8a6d1c;
+  --blue-mid:  #d4af4e;
+  --blue-pale: #faf6ec;
+  --blue-soft: #ede4c8;
+  --sky:       #c9a227;
+  --indigo:    #0f2347;
+  --teal:      #1a5c4a;
+  --accent:    #c9a227;
+  --red:       #dc2626;
+  --green:     #16a34a;
+  --white:     #ffffff;
+  --bg:        #f3f0e8;
+  --card:      #ffffff;
+  --text:      #0f1923;
+  --muted:     #6b7280;
+  --border:    #e0d9c8;
+  --sidebar-bg:#0a1628;
+  --sidebar-active: rgba(201,162,39,0.15);
+}
+
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+
+body {
+  min-height:100vh;
+  background: var(--bg);
+  font-family: 'DM Sans', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  color: var(--text);
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(201,162,39,0.07) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(15,35,71,0.05) 0%, transparent 50%);
+}
+.layout { display:flex; min-height:100vh; }
+
+/* ── 사이드바 ── */
+.sidebar {
+  width:220px; flex-shrink:0;
+  background: linear-gradient(175deg, #0a1628 0%, #0f2347 100%);
+  padding:32px 0 20px; display:flex; flex-direction:column;
+  position:sticky; top:0; height:100vh; overflow-y:auto;
+  box-shadow: 4px 0 32px rgba(10,22,40,0.35);
+}
+.sidebar-logo {
+  font-size:20px; font-weight:700; color:#fff; letter-spacing:-0.5px;
+  padding:0 20px 24px; display:flex; align-items:center; gap:8px;
+}
+.sidebar-logo span { font-size:22px; }
+.sidebar-title {
+  font-size:10px; font-weight:600; color:rgba(255,255,255,0.4);
+  letter-spacing:2px; text-transform:uppercase; padding:0 20px 8px;
+}
+.folder-item {
+  display:flex; align-items:center; gap:9px; padding:10px 20px;
+  cursor:pointer; font-size:13px; color:rgba(255,255,255,0.65);
+  transition:all .2s; position:relative; border-radius:0;
+  margin:1px 8px; border-radius:10px;
+}
+.folder-item:hover { background:rgba(255,255,255,0.1); color:#fff; }
+.folder-item.active { background:rgba(255,255,255,0.15); color:#fff; }
+.folder-item.active::before {
+  content:''; position:absolute; left:-8px; top:50%; transform:translateY(-50%);
+  width:3px; height:60%; background:#c9a227; border-radius:0 2px 2px 0;
+}
+.folder-icon { font-size:15px; flex-shrink:0; }
+.folder-name { flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:500; }
+.folder-count {
+  font-size:10px; background:rgba(255,255,255,0.15); color:rgba(255,255,255,0.8);
+  padding:2px 7px; border-radius:99px; font-weight:600;
+}
+.folder-del { background:none; border:none; color:rgba(255,255,255,0.3); cursor:pointer; font-size:13px; padding:2px 4px; display:none; }
+.folder-item:hover .folder-del { display:block; }
+.folder-del:hover { color:#ef4444; }
+.sidebar-divider { border:none; border-top:1px solid rgba(255,255,255,0.1); margin:12px 0; }
+.new-folder-btn {
+  display:flex; align-items:center; gap:8px; padding:10px 20px; margin:1px 8px;
+  border-radius:10px; cursor:pointer; font-size:13px; color:rgba(255,255,255,0.5);
+  background:none; border:1.5px dashed rgba(255,255,255,0.2); width:calc(100% - 16px);
+  font-family:inherit; transition:all .2s;
+}
+.new-folder-btn:hover { color:#fff; border-color:rgba(255,255,255,0.5); background:rgba(255,255,255,0.05); }
+
+/* ── 메인 ── */
+.main { flex:1; padding:36px 28px 60px; min-width:0; }
+
+.main-header { margin-bottom:24px; }
+.header-top { display:flex; align-items:flex-start; justify-content:space-between; }
+.main-header h1 {
+  font-size:26px; font-weight:700; letter-spacing:-.5px;
+  display:flex; align-items:center; gap:10px; color:var(--text);
+}
+.header-emoji { font-size:28px; }
+.subtitle { color:var(--muted); font-size:13px; margin-top:5px; font-weight:400; }
+.progress-wrap { margin-top:14px; }
+.progress-bar-bg {
+  height:6px; background:var(--blue-soft); border-radius:99px; overflow:hidden;
+  position:relative;
+}
+.progress-bar {
+  height:100%;
+  background: linear-gradient(90deg, #c9a227, #e8c14a);
+  border-radius:99px; transition:width .5s cubic-bezier(.4,0,.2,1);
+  position:relative;
+}
+.progress-bar::after {
+  content:''; position:absolute; right:0; top:50%; transform:translateY(-50%);
+  width:10px; height:10px; background:#fff; border:2px solid #c9a227;
+  border-radius:50%; box-shadow:0 0 0 3px rgba(201,162,39,0.25);
+  transition:opacity .3s;
+}
+.progress-pct { font-size:12px; font-weight:600; color:var(--blue); margin-top:6px; }
+
+/* ── 입력 카드 ── */
+.card {
+  background:var(--card); border-radius:18px; padding:20px;
+  margin-bottom:20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 4px 16px rgba(201,162,39,0.08);
+  border:1.5px solid var(--blue-soft);
+  transition: box-shadow .2s;
+}
+.card:focus-within {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05), 0 0 0 3px rgba(201,162,39,0.2);
+}
+.card input[type="text"] {
+  width:100%; border:none; outline:none; font-size:15px; color:var(--text);
+  background:transparent; padding-bottom:12px;
+  border-bottom:2px solid var(--blue-soft);
+  font-weight:600; font-family:inherit;
+  transition:border-color .2s;
+}
+.card input[type="text"]:focus { border-color:var(--blue); }
+.card input[type="text"]::placeholder { color:#c0ccdd; font-weight:400; }
+.detail-hint {
+  font-size:11px; color:var(--muted); margin:10px 0 6px;
+  display:flex; align-items:center; gap:5px;
+}
+.card textarea {
+  width:100%; resize:none; font-size:13px; color:var(--muted);
+  padding:10px 12px; background:var(--blue-pale); border-radius:10px;
+  border:1.5px solid var(--blue-soft); line-height:1.8; min-height:76px;
+  font-family:inherit; outline:none; transition:border-color .2s;
+}
+.card textarea:focus { border-color:var(--blue); }
+.card textarea::placeholder { color:#b0c0d8; }
+
+.date-wrap {
+  display:flex; align-items:center; gap:8px; margin-top:10px;
+  background:var(--blue-pale); border-radius:10px;
+  border:1.5px solid var(--blue-soft); padding:9px 13px;
+  transition:border-color .2s;
+}
+.date-wrap:focus-within { border-color:var(--blue); }
+.date-icon { font-size:14px; flex-shrink:0; }
+.date-wrap input[type="date"] {
+  flex:1; border:none; outline:none; font-size:13px; color:var(--text);
+  background:transparent; font-family:inherit; padding:0!important;
+  border-bottom:none!important; font-weight:500; -webkit-appearance:none;
+}
+.date-clear {
+  background:none; border:none; color:#b0c0d8; cursor:pointer;
+  font-size:16px; padding:0; line-height:1; transition:color .2s;
+}
+.date-clear:hover { color:var(--red); }
+
+.input-row { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0; }
+select {
+  padding:7px 12px; border-radius:10px; border:1.5px solid var(--blue-soft);
+  background:var(--blue-pale); font-size:13px; color:var(--text);
+  outline:none; font-family:inherit; font-weight:500; cursor:pointer;
+  transition:border-color .2s;
+}
+select:focus { border-color:var(--blue); }
+
+.add-btn {
+  width:100%; padding:12px; border:none; border-radius:12px; cursor:pointer;
+  font-family:inherit; font-size:14px; font-weight:700; letter-spacing:.3px;
+  background: linear-gradient(135deg, #1a3a6b 0%, #0a1628 100%);
+  color:#fff;
+  box-shadow: 0 4px 14px rgba(10,22,40,0.4);
+  transition: all .2s;
+}
+.add-btn:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(10,22,40,0.5); }
+.add-btn:active { transform:translateY(0); }
+
+/* 리스트 타입 토글 */
+.list-type-toggle {
+  display:flex; background:var(--blue-pale); border-radius:11px;
+  padding:3px; margin-bottom:14px; border:1.5px solid var(--blue-soft);
+}
+.list-type-btn {
+  flex:1; padding:8px 10px; border:none; border-radius:8px;
+  background:none; font-size:13px; font-weight:600; color:var(--muted);
+  cursor:pointer; font-family:inherit; transition:all .2s;
+  display:flex; align-items:center; justify-content:center; gap:5px;
+}
+.list-type-btn.active {
+  background:#fff; color:var(--indigo);
+  box-shadow:0 1px 6px rgba(10,22,40,0.15);
+}
+
+/* ── 2컬럼 ── */
+.todo-columns { display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start; }
+
+.col-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.col-title {
+  font-size:12px; font-weight:700; color:var(--text);
+  display:flex; align-items:center; gap:6px; text-transform:uppercase; letter-spacing:.5px;
+}
+.col-count {
+  font-size:10px; font-weight:700;
+  background: linear-gradient(135deg, #c9a227, #8a6d1c);
+  color:#fff; padding:2px 8px; border-radius:99px;
+}
+.toggle-done-btn {
+  padding:4px 10px; border-radius:99px;
+  border:1.5px solid var(--blue-soft); background:var(--card);
+  color:var(--muted); font-size:10px; cursor:pointer; font-family:inherit;
+  transition:all .2s; font-weight:500;
+}
+.toggle-done-btn:hover { border-color:var(--blue); color:var(--blue); }
+
+/* 날짜 그룹 */
+.date-group { margin-bottom:14px; }
+.date-group-label {
+  font-size:11px; font-weight:700; padding:4px 10px; margin-bottom:6px;
+  border-radius:99px; display:inline-flex; align-items:center; gap:4px;
+  letter-spacing:.3px;
+}
+.date-group-label.overdue  { background:#fef2f2; color:var(--red); }
+.date-group-label.today    { background:#faf6ec; color:#8a6d1c; }
+.date-group-label.tomorrow { background:#f0fdf4; color:#16a34a; }
+.date-group-label.upcoming { background:var(--bg); color:var(--muted); }
+
+/* 월 그룹 */
+.month-group { margin-bottom:12px; }
+.month-group-header {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 14px; cursor:pointer; user-select:none;
+  border-radius:12px; margin-bottom:6px;
+  background:linear-gradient(135deg, #f5eedb, #ede4c8);
+  border:1.5px solid #ddd0aa;
+  transition:all .2s;
+}
+.month-group-header:hover { background:linear-gradient(135deg, #ede4c8, #e0d4a8); }
+.month-group-title { font-size:13px; font-weight:700; color:var(--text); flex:1; }
+.month-group-count {
+  font-size:10px; font-weight:700;
+  background:linear-gradient(135deg, #c9a227, #8a6d1c);
+  color:#fff; padding:2px 8px; border-radius:99px;
+}
+.month-group-arrow { font-size:11px; color:var(--muted); transition:transform .2s; flex-shrink:0; }
+.month-group-arrow.open { transform:rotate(180deg); }
+.month-group-body { display:none; padding:0 2px; }
+.month-group-body.open { display:block; }
+
+/* 할일 카드 */
+.todo-card {
+  background:var(--card); border-radius:12px; margin-bottom:6px;
+  border:1.5px solid var(--border);
+  box-shadow:0 1px 4px rgba(0,0,0,0.04);
+  transition:margin .15s ease, opacity .15s ease;
+}
+.todo-card:hover { border-color:var(--blue-mid); box-shadow:0 2px 10px rgba(59,130,246,0.1); }
+.todo-card.faded { opacity:.45; }
+.todo-card.dragging  { opacity:.35; box-shadow:none; pointer-events:none; }
+.todo-card.drop-before { margin-top:22px; }
+.todo-card.drop-after  { margin-bottom:22px; }
+.todo-card.drop-before::before,
+.todo-card.drop-after::after {
+  content:''; display:block; position:absolute;
+  left:0; right:0; height:3px;
+  background:#c9a227; border-radius:2px;
+}
+.todo-card { position:relative; }
+.todo-card.drop-before::before { top:-13px; }
+.todo-card.drop-after::after  { bottom:-13px; }
+.drag-handle { cursor:grab; color:#c0c0c8; font-size:16px; padding:0 4px 0 0; user-select:none; flex-shrink:0; }
+.drag-handle:active  { cursor:grabbing; }
+
+.card-main { padding:12px 14px; display:flex; align-items:center; gap:10px; cursor:pointer; }
+.card-text-wrap { flex:1; min-width:0; }
+.card-title { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text); }
+.card-title.striked { text-decoration:line-through; color:var(--muted); }
+.card-meta { display:flex; gap:3px; margin-top:4px; flex-wrap:wrap; align-items:center; }
+
+.tag { font-size:10px; padding:2px 7px; border-radius:99px; font-weight:600; }
+.tag-cat     { background:#eee8d5; color:#5c4a1e; }
+.tag-high    { background:#fef2f2; color:var(--red); }
+.tag-mid     { background:#faf6ec; color:#8a6d1c; }
+.tag-low     { background:#f0fdf4; color:#15803d; }
+.tag-carried { background:#f0f4ff; color:#0f2347; }
+.tag-prog    { font-size:10px; color:var(--muted); font-weight:500; }
+
+.card-arrow { font-size:10px; color:var(--blue-mid); transition:transform .2s; flex-shrink:0; }
+.card-arrow.open { transform:rotate(180deg); }
+
+.card-actions { display:flex; gap:2px; flex-shrink:0; }
+.edit-btn {
+  background:none; border:none; cursor:pointer; padding:4px 5px;
+  border-radius:6px; font-size:12px; color:#c0ccdd; transition:all .2s;
+}
+.edit-btn:hover { background:var(--blue-pale); color:var(--blue); }
+.del-btn {
+  background:none; border:none; cursor:pointer; padding:4px 4px;
+  border-radius:6px; font-size:15px; color:#c0ccdd; transition:all .2s;
+}
+.del-btn:hover { background:#fef2f2; color:var(--red); }
+
+/* 서브 체크리스트 */
+.sub-list {
+  display:none; border-top:1.5px solid var(--blue-soft);
+  padding:6px 14px 10px; background:var(--blue-pale);
+}
+.sub-list.open { display:block; }
+.sub-item { display:flex; align-items:center; gap:9px; padding:7px 0; border-bottom:1px solid rgba(59,130,246,0.1); }
+.sub-item:last-child { border-bottom:none; }
+.sub-check {
+  width:18px; height:18px; border-radius:5px;
+  border:2px solid #c9a227; cursor:pointer; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .15s; user-select:none; background:#fff;
+}
+.sub-check.on {
+  background: linear-gradient(135deg, #c9a227, #8a6d1c);
+  border-color:transparent;
+}
+.sub-check.on::after { content:'✓'; color:#fff; font-size:10px; font-weight:700; }
+.sub-label { font-size:13px; color:var(--text); flex:1; line-height:1.4; font-weight:400; }
+.sub-label.done { text-decoration:line-through; color:var(--muted); }
+.sub-carried { font-size:9px; background:#fdf4ff; color:#7c3aed; padding:1px 6px; border-radius:99px; font-weight:600; }
+
+/* 세부내용 뷰 */
+.detail-view {
+  display:none; padding:8px 14px 12px;
+  font-size:13px; color:var(--muted); line-height:1.8;
+  border-top:1.5px solid var(--blue-soft); background:var(--blue-pale);
+}
+.detail-view.open { display:block; }
+
+.empty {
+  text-align:center; color:#b0c4de; padding:28px 0; font-size:12px;
+  font-weight:500; letter-spacing:.3px;
+}
+
+/* 모달 */
+.modal-overlay {
+  display:none; position:fixed; inset:0;
+  background:rgba(15,30,60,0.45); z-index:100;
+  align-items:center; justify-content:center; padding:20px;
+  backdrop-filter:blur(4px);
+}
+.modal-overlay.open { display:flex; }
+.modal {
+  background:#fff; border-radius:22px; padding:26px;
+  width:100%; max-width:420px; max-height:90vh; overflow-y:auto;
+  box-shadow:0 24px 60px rgba(30,60,120,0.18);
+  animation:slideUp .25s cubic-bezier(.16,1,.3,1);
+  border:1.5px solid var(--blue-soft);
+}
+@keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+.modal-title { font-size:17px; font-weight:700; margin-bottom:18px; color:var(--text); }
+.modal-label { font-size:11px; font-weight:700; color:var(--blue); letter-spacing:.5px; text-transform:uppercase; margin:14px 0 6px; }
+.modal input[type="text"], .modal input[type="date"] {
+  width:100%; border:2px solid var(--blue-soft); border-radius:10px;
+  padding:10px 13px; font-size:14px; font-family:inherit; outline:none; color:var(--text);
+  background:var(--blue-pale); transition:border-color .2s;
+}
+.modal input:focus { border-color:var(--blue); background:#fff; }
+.modal textarea {
+  width:100%; border:2px solid var(--blue-soft); border-radius:10px;
+  padding:10px 13px; font-size:13px; font-family:inherit; color:var(--muted);
+  outline:none; resize:none; min-height:100px; line-height:1.8;
+  background:var(--blue-pale); transition:border-color .2s;
+}
+.modal textarea:focus { border-color:var(--blue); background:#fff; }
+.modal select {
+  width:100%; padding:10px 13px; border-radius:10px; border:2px solid var(--blue-soft);
+  background:var(--blue-pale); font-size:13px; color:var(--text);
+  outline:none; font-family:inherit; cursor:pointer; transition:border-color .2s;
+}
+.modal select:focus { border-color:var(--blue); }
+.modal-btns { display:flex; gap:8px; margin-top:20px; }
+.modal-cancel {
+  flex:1; padding:12px; background:var(--blue-pale); color:var(--muted);
+  border:none; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit;
+}
+.modal-save {
+  flex:2; padding:12px; color:#fff; border:none; border-radius:12px;
+  font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;
+  background:linear-gradient(135deg, #1a3a6b, #0a1628);
+  box-shadow:0 4px 14px rgba(10,22,40,0.35);
+}
+.emoji-picker { display:flex; gap:7px; flex-wrap:wrap; margin-top:6px; }
+.emoji-opt {
+  width:34px; height:34px; border-radius:9px; border:2px solid var(--blue-soft);
+  background:var(--blue-pale); cursor:pointer; font-size:16px;
+  display:flex; align-items:center; justify-content:center; transition:all .15s;
+}
+.emoji-opt:hover { border-color:var(--blue-mid); }
+.emoji-opt.selected { border-color:var(--blue); background:var(--blue-soft); }
+
+@media (max-width:700px) {
+  .sidebar { display:none; }
+  .main { padding:20px 14px 60px; }
+  .todo-columns { grid-template-columns:1fr 1fr; gap:10px; }
+  .col-title { font-size:10px; }
+  .toggle-done-btn { font-size:9px; padding:3px 8px; }
+  .card-title { font-size:12px; }
+  .card-main { padding:10px 11px; }
+  .card { padding:14px; }
+  .main-header h1 { font-size:20px; }
+}
+@media (max-width:400px) {
+  .col-header { flex-direction:column; align-items:flex-start; gap:4px; }
+}
+
+/* ── 페이지 네비게이션 ── */
+.page-nav {
+  display:flex; flex-direction:column; gap:4px;
+  padding:0 8px 16px;
+}
+.page-nav-btn {
+  display:flex; align-items:center; gap:8px;
+  padding:9px 14px; border-radius:10px;
+  border:none; background:none; cursor:pointer;
+  font-size:13px; font-weight:600; font-family:inherit;
+  color:rgba(255,255,255,0.55); transition:all .2s; text-align:left;
+}
+.page-nav-btn:hover { background:rgba(255,255,255,0.1); color:#fff; }
+.page-nav-btn.active { background:rgba(255,255,255,0.15); color:#fff; }
+.page-nav-btn.active::before {
+  content:''; display:inline-block;
+  width:3px; height:14px; background:#c9a227;
+  border-radius:2px; margin-right:2px; flex-shrink:0;
+}
+.sidebar-section-title {
+  font-size:10px; font-weight:600; color:rgba(255,255,255,0.35);
+  letter-spacing:2px; text-transform:uppercase; padding:0 20px 8px;
+}
+
+/* ── 아이디어 페이지 ── */
+.ideas-list { margin-top:20px; display:flex; flex-direction:column; gap:10px; }
+
+/* 제목 그룹 */
+.idea-group {
+  background:#fff; border-radius:14px; border:1.5px solid var(--border);
+  box-shadow:0 1px 4px rgba(0,0,0,0.04); overflow:hidden; transition:border-color .2s;
+}
+.idea-group:hover { border-color:var(--blue-mid); }
+.idea-group-header {
+  display:flex; align-items:center; gap:12px;
+  padding:16px 18px; cursor:pointer; user-select:none;
+}
+.idea-group-icon { font-size:20px; flex-shrink:0; }
+.idea-group-title { font-size:16px; font-weight:700; color:var(--text); flex:1; }
+.idea-group-meta  { font-size:11px; color:var(--muted); flex-shrink:0; margin-right:6px; }
+.idea-group-arrow {
+  font-size:11px; color:var(--muted); transition:transform .2s; flex-shrink:0;
+}
+.idea-group-arrow.open { transform:rotate(180deg); }
+.idea-group-del {
+  background:none; border:none; cursor:pointer; color:#ccc;
+  font-size:15px; padding:2px 4px; border-radius:4px; transition:color .15s;
+}
+.idea-group-del:hover { color:#ef4444; }
+
+/* 카테고리 목록 */
+.idea-cats { display:none; border-top:1px solid var(--border); }
+.idea-cats.open { display:block; }
+.idea-cat-item { border-bottom:1px solid #f1f5f9; }
+.idea-cat-item:last-child { border-bottom:none; }
+.idea-cat-header {
+  display:flex; align-items:center; gap:10px;
+  padding:12px 18px 12px 42px; cursor:pointer; user-select:none;
+}
+.idea-cat-tag {
+  font-size:12px; font-weight:700; color:#8a6d1c;
+  background:#faf0d0; padding:3px 10px; border-radius:99px; flex-shrink:0;
+}
+.idea-cat-date  { font-size:11px; color:#aab; flex:1; margin-left:8px; }
+.idea-cat-arrow { font-size:10px; color:var(--muted); transition:transform .2s; flex-shrink:0; }
+.idea-cat-arrow.open { transform:rotate(180deg); }
+.idea-cat-actions { display:flex; gap:2px; flex-shrink:0; }
+.idea-cat-edit, .idea-cat-del {
+  background:none; border:none; cursor:pointer; padding:3px 5px;
+  border-radius:5px; font-size:12px; transition:background .15s;
+}
+.idea-cat-edit:hover { background:#eff6ff; }
+.idea-cat-del:hover  { background:#fff1f2; }
+
+/* 카테고리 내용 */
+.idea-cat-body {
+  display:none; padding:12px 18px 16px 42px;
+  font-size:13.5px; color:#475569; line-height:1.8;
+  white-space:pre-wrap; word-break:break-word;
+  background:#fafbfc; border-top:1px solid #f1f5f9;
+  max-height:520px; overflow-y:auto; -webkit-overflow-scrolling:touch;
+}
+.idea-cat-body.open { display:block; }
+
+.idea-empty {
+  text-align:center; color:var(--muted); padding:60px 20px; font-size:14px;
+}
+
+/* 아이디어 입력 */
+.idea-input-title {
+  width:100%; font-size:18px; font-weight:700;
+  border:none; background:none; outline:none; color:var(--text); font-family:inherit;
+  padding:4px 0; border-bottom:2px solid var(--border);
+  margin-bottom:14px; transition:border-color .2s;
+}
+.idea-input-title:focus { border-bottom-color:var(--blue); }
+.idea-input-title::placeholder { color:#c8d0da; font-weight:400; }
+.idea-title-hint {
+  font-size:11px; color:var(--indigo); margin:-10px 0 12px;
+  font-weight:600; display:none;
+}
+.idea-input-category {
+  width:100%; font-size:13px; border:none; background:none; outline:none;
+  color:var(--indigo); font-family:inherit; font-weight:600;
+  padding:4px 0 10px; border-bottom:1.5px solid var(--border);
+  margin-bottom:12px; transition:border-color .2s;
+}
+.idea-input-category:focus { border-bottom-color:var(--indigo); }
+.idea-input-category::placeholder { color:#c4b9f0; font-weight:400; }
+.idea-input-content {
+  width:100%; min-height:200px; resize:vertical;
+  border:1.5px solid var(--border); border-radius:10px;
+  padding:10px 12px; font-size:13px; font-family:inherit;
+  color:var(--text); background:#f8fafc; outline:none;
+  transition:border-color .2s; line-height:1.6;
+}
+.idea-input-content:focus { border-color:var(--blue); background:#fff; }
+</style>
+<meta name="theme-color" content="#0a1628">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<div class="layout">
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><span>✓</span> 할일관리</div>
+    <div class="page-nav">
+      <button class="page-nav-btn active" id="navTodos" onclick="switchPage('todos')">📋 전체 할일</button>
+      <button class="page-nav-btn"        id="navIdeas" onclick="switchPage('ideas')">💡 아이디어</button>
+    </div>
+    <div id="sidebarTodos">
+      <div class="sidebar-section-title">폴더</div>
+      <div id="folderList"></div>
+      <hr class="sidebar-divider">
+      <button class="new-folder-btn" onclick="openNewFolder()">＋ 새 폴더</button>
+    </div>
+    <!-- 로그인 사용자 정보 -->
+    <div id="sidebarUser" style="display:none;margin-top:auto;padding:12px 12px 8px;border-top:1px solid rgba(255,255,255,0.08);">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 6px;">
+        <img id="userAvatar" style="width:28px;height:28px;border-radius:50%;border:2px solid rgba(201,162,39,0.5);flex-shrink:0;" src="" alt="">
+        <div style="flex:1;min-width:0;">
+          <div id="userNameDisplay" style="font-size:11px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+          <div id="userEmailDisplay" style="font-size:10px;color:rgba(255,255,255,0.38);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+        </div>
+        <button onclick="doSignOut()" style="background:none;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.45);cursor:pointer;border-radius:6px;padding:3px 8px;font-size:9px;font-family:inherit;white-space:nowrap;flex-shrink:0;">로그아웃</button>
+      </div>
+      <div id="syncStatus" style="font-size:9px;color:rgba(201,162,39,0.7);text-align:center;padding-bottom:4px;">✓ 동기화됨</div>
+    </div>
+  </div>
+
+  <div class="main" id="pageTodos">
+    <div class="main-header">
+      <h1><span id="currentEmoji">📋</span><span id="currentFolderName">전체 할 일</span></h1>
+      <p class="subtitle" id="subtitle">총 0개 중 0개 완료</p>
+      <div class="progress-wrap">
+        <div class="progress-bar-bg"><div class="progress-bar" id="progress" style="width:0%"></div></div>
+        <div class="progress-pct" id="progressPct">0% 완료</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="list-type-toggle">
+        <button class="list-type-btn active" id="btnDate" onclick="selectListType('date',this)">📅 Daily Works</button>
+        <button class="list-type-btn" id="btnNodate" onclick="selectListType('nodate',this)">📝 ToDo List</button>
+      </div>
+      <input type="text" id="todoInput" placeholder="할 일 제목 (선택 — 날짜가 제목이 됩니다)" />
+      <div class="detail-hint">📋 세부 할 일은 줄바꿈으로 구분하면 체크리스트가 됩니다</div>
+      <textarea id="detailInput" placeholder="예)&#10;보고서 작성&#10;이메일 답장&#10;미팅 준비"></textarea>
+      <div class="date-wrap" id="dateWrap">
+        <span class="date-icon">📅</span>
+        <input type="date" id="dateInput" />
+        <button class="date-clear" onclick="document.getElementById('dateInput').value=''">×</button>
+      </div>
+      <div class="input-row">
+        <select id="folderSelect"></select>
+        <select id="prioritySelect"><option>높음</option><option selected>보통</option><option>낮음</option></select>
+      </div>
+      <button class="add-btn" onclick="addTodo()">+ 추가하기</button>
+    </div>
+
+    <div class="todo-columns">
+      <div>
+        <div class="col-header">
+          <div class="col-title">📅 Daily Works <span class="col-count" id="dateCount">0</span></div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <button id="refreshBtn" class="toggle-done-btn" onclick="manualCarryOver()" title="이월 새로고침">🔄</button>
+            <button class="toggle-done-btn" onclick="toggleShow('date',this)">완료 숨기기</button>
+          </div>
+        </div>
+        <div id="dateList"></div>
+      </div>
+      <div>
+        <div class="col-header">
+          <div class="col-title">📝 ToDo List <span class="col-count" id="nodateCount">0</span></div>
+          <button class="toggle-done-btn" onclick="toggleShow('nodate',this)">완료 숨기기</button>
+        </div>
+        <div id="nodateList" ondragover="event.preventDefault()" ondrop="event.preventDefault()"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 아이디어 페이지 ── -->
+  <div class="main" id="pageIdeas" style="display:none">
+    <div class="main-header">
+      <h1><span>💡</span> 아이디어</h1>
+      <p class="subtitle">새로운 생각을 자유롭게 기록하세요</p>
+    </div>
+    <div class="card">
+      <input type="text" class="idea-input-title" id="ideaTitleInput"
+             list="ideaTitleList" autocomplete="off"
+             placeholder="제목 입력 또는 기존 제목 선택"
+             oninput="onIdeaTitleInput(this.value)" />
+      <datalist id="ideaTitleList"></datalist>
+      <div class="idea-title-hint" id="ideaTitleHint">✓ 기존 그룹에 추가됩니다</div>
+      <input type="text" class="idea-input-category" id="ideaCategoryInput" placeholder="카테고리를 입력하세요 (필수)" />
+      <textarea class="idea-input-content" id="ideaContentInput" placeholder="내용을 자유롭게 적어주세요 (선택)"></textarea>
+      <button class="add-btn" style="margin-top:12px" onclick="addIdea()">+ 추가하기</button>
+    </div>
+    <div class="ideas-list" id="ideasGrid"></div>
+  </div>
+</div>
+
+<!-- 아이디어 수정 모달 -->
+<div class="modal-overlay" id="ideaModal" onclick="closeModal('ideaModal',event)">
+  <div class="modal" style="max-width:680px; width:90vw;">
+    <div class="modal-title">💡 아이디어 수정</div>
+    <div class="modal-label">카테고리</div>
+    <input type="text" id="ideaEditCategory" placeholder="카테고리 (선택)"/>
+    <div class="modal-label">내용</div>
+    <textarea id="ideaEditContent" placeholder="내용을 입력하세요" style="min-height:340px"></textarea>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal('ideaModal')">취소</button>
+      <button class="modal-save" onclick="saveIdeaEdit()">저장하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 수정 모달 -->
+<div class="modal-overlay" id="editModal" onclick="closeModal('editModal',event)">
+  <div class="modal">
+    <div class="modal-title">✏️ 할 일 수정</div>
+    <div class="modal-label">제목 (비워두면 날짜가 제목)</div>
+    <input type="text" id="editText" placeholder="할 일 제목 (선택)"/>
+    <div class="modal-label">세부 내용 (줄바꿈으로 구분)</div>
+    <textarea id="editDetail" placeholder="보고서 작성&#10;이메일 답장"></textarea>
+    <div class="modal-label">날짜</div>
+    <input type="date" id="editDate"/>
+    <div class="modal-label">폴더 / 우선순위</div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <select id="editFolder"></select>
+      <select id="editPriority"><option>높음</option><option>보통</option><option>낮음</option></select>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal('editModal')">취소</button>
+      <button class="modal-save" onclick="saveEdit()">저장하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 폴더 모달 -->
+<div class="modal-overlay" id="folderModal" onclick="closeModal('folderModal',event)">
+  <div class="modal">
+    <div class="modal-title">📁 새 폴더 만들기</div>
+    <div class="modal-label">폴더 이름</div>
+    <input type="text" id="folderNameInput" placeholder="예: 회사, 집안일..."/>
+    <div class="modal-label">아이콘</div>
+    <div class="emoji-picker" id="emojiPicker"></div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal('folderModal')">취소</button>
+      <button class="modal-save" onclick="saveFolder()">만들기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 로그인 화면 -->
+<div id="authOverlay" style="position:fixed;inset:0;background:linear-gradient(135deg,#0a1628 0%,#0f2347 100%);display:flex;align-items:center;justify-content:center;z-index:9999;padding:24px;">
+  <div style="text-align:center;max-width:300px;width:100%;">
+    <div style="font-size:60px;margin-bottom:20px;filter:drop-shadow(0 4px 12px rgba(201,162,39,0.4));">✓</div>
+    <h1 style="font-size:28px;font-weight:800;color:#fff;margin-bottom:10px;letter-spacing:-0.5px;">할일관리</h1>
+    <p style="color:rgba(255,255,255,0.45);font-size:13px;line-height:1.8;margin-bottom:40px;">Google 계정으로 로그인하면<br>맥과 아이폰이 자동으로 동기화됩니다</p>
+    <button onclick="signInWithGoogle()" style="background:linear-gradient(135deg,#c9a227,#8a6d1c);color:#fff;border:none;border-radius:14px;padding:16px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 6px 24px rgba(201,162,39,0.4);width:100%;letter-spacing:0.3px;">🔐 Google로 로그인</button>
+    <p id="authError" style="color:#ef4444;font-size:12px;margin-top:14px;display:none;"></p>
+  </div>
+</div>
+
+<script>
+// ── Firebase 초기화 ──
+var firebaseConfig = {
+  apiKey: "AIzaSyCo-pBrPKsqJzBv4y-q9D5u0QtgiXRljfg",
+  authDomain: "todo-e7d6a.firebaseapp.com",
+  projectId: "todo-e7d6a",
+  storageBucket: "todo-e7d6a.firebasestorage.app",
+  messagingSenderId: "1092836772189",
+  appId: "1:1092836772189:web:3e747dce5516858d6740b4"
+};
+firebase.initializeApp(firebaseConfig);
+var fbAuth  = firebase.auth();
+var fbDb    = firebase.firestore();
+var fbUser  = null;
+var fbUnsub = null;
+var fbLoaded   = false;
+var startupDone = false;
+
+function signInWithGoogle() {
+  var provider = new firebase.auth.GoogleAuthProvider();
+  fbAuth.signInWithPopup(provider).catch(function(e) {
+    var el = document.getElementById('authError');
+    if (el) { el.style.display='block'; el.textContent='로그인 오류: '+e.message; }
+  });
+}
+function doSignOut() {
+  if (fbUnsub) { fbUnsub(); fbUnsub = null; }
+  fbAuth.signOut();
+}
+
+function setSyncStatus(msg) {
+  var el = document.getElementById('syncStatus');
+  if (el) el.textContent = msg;
+}
+
+function saveToFirestore() {
+  if (!fbUser) return;
+  setSyncStatus('⟳ 저장 중...');
+  fbDb.collection('users').doc(fbUser.uid).collection('appData').doc('main')
+    .set({ todos: todos, folders: folders, ideas: ideas,
+           updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
+    .then(function() { setSyncStatus('✓ 동기화됨'); })
+    .catch(function(e) { setSyncStatus('⚠ 저장 실패'); console.error(e); });
+}
+
+function loadFromFirestore() {
+  if (!fbUser) return;
+  if (fbUnsub) fbUnsub();
+  fbUnsub = fbDb.collection('users').doc(fbUser.uid).collection('appData').doc('main')
+    .onSnapshot(function(doc) {
+      if (doc.exists) {
+        var d = doc.data();
+        if (d.todos   !== undefined) todos   = d.todos;
+        if (d.folders !== undefined) folders = d.folders;
+        if (d.ideas   !== undefined) ideas   = d.ideas;
+        localStorage.setItem('todos',   JSON.stringify(todos));
+        localStorage.setItem('folders', JSON.stringify(folders));
+        localStorage.setItem('ideas',   JSON.stringify(ideas));
+        setSyncStatus('✓ 동기화됨');
+      } else {
+        // Firestore에 데이터 없음 → 로컬 데이터 업로드
+        saveToFirestore();
+      }
+      if (!fbLoaded) {
+        fbLoaded = true;
+        runStartup();
+      } else {
+        renderFolders(); renderTodos();
+        if (currentPage === 'ideas') renderIdeas();
+      }
+    }, function(e) { setSyncStatus('⚠ 연결 오류'); console.error(e); });
+}
+
+fbAuth.onAuthStateChanged(function(user) {
+  fbUser = user;
+  if (user) {
+    document.getElementById('authOverlay').style.display = 'none';
+    var si = document.getElementById('sidebarUser');
+    if (si) si.style.display = 'block';
+    var av = document.getElementById('userAvatar');
+    var nm = document.getElementById('userNameDisplay');
+    var em = document.getElementById('userEmailDisplay');
+    if (av && user.photoURL) av.src = user.photoURL;
+    if (nm) nm.textContent = user.displayName || '';
+    if (em) em.textContent = user.email || '';
+    loadFromFirestore();
+  } else {
+    document.getElementById('authOverlay').style.display = 'flex';
+    var si = document.getElementById('sidebarUser');
+    if (si) si.style.display = 'none';
+    fbLoaded = false;
+    if (fbUnsub) { fbUnsub(); fbUnsub = null; }
+  }
+});
+
+// Firebase가 느리거나 오프라인일 경우 로컬 데이터로 폴백 (3초 후)
+setTimeout(function() { if (!startupDone) runStartup(); }, 3000);
+
+// 앱 아이콘
+var cv = document.createElement('canvas'); cv.width = cv.height = 180;
+var cx = cv.getContext('2d');
+cx.fillStyle='#1a1a1a'; cx.beginPath(); cx.roundRect(0,0,180,180,40); cx.fill();
+cx.fillStyle='#fff'; cx.font='bold 100px sans-serif'; cx.textAlign='center'; cx.textBaseline='middle';
+cx.fillText('✓',90,95);
+document.getElementById('appIcon').href = cv.toDataURL();
+
+var EMOJIS = ['📁','💼','🏠','🛒','💡','📚','🎯','✈️','💪','🎨','🔧','📝','⭐','🚀','❤️','🎵'];
+var selectedEmoji = '📁';
+var DEFAULT_FOLDERS = [
+  {id:'all',      name:'전체 할 일', emoji:'📋', fixed:true},
+  {id:'work',     name:'업무',       emoji:'💼', fixed:false},
+  {id:'personal', name:'개인',       emoji:'🏠', fixed:false},
+  {id:'shop',     name:'쇼핑',       emoji:'🛒', fixed:false}
+];
+
+var folders       = JSON.parse(localStorage.getItem('folders') || 'null') || DEFAULT_FOLDERS;
+var todos         = JSON.parse(localStorage.getItem('todos')   || '[]');
+var ideas         = JSON.parse(localStorage.getItem('ideas')   || '[]');
+var currentFolder = 'all';
+var currentPage   = 'todos';
+var showDoneDate  = true;
+var showDoneNodate= true;
+var editingId     = null;
+var pOrder        = {'높음':0,'보통':1,'낮음':2};
+var listType      = 'date';
+var openSubLists  = new Set();
+var openDetails   = new Set();
+var openMonths    = new Set([new Date().getFullYear()+'-'+(function(){var m=new Date().getMonth()+1;return m<10?'0'+m:String(m);})() ]);
+
+function selectListType(type, btn) {
+  listType = type;
+  document.querySelectorAll('.list-type-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  var dateWrap = document.getElementById('dateWrap');
+  var input    = document.getElementById('todoInput');
+  if (type === 'date') {
+    dateWrap.style.display = 'flex';
+    input.placeholder = '할 일 제목 (선택 — 날짜가 제목이 됩니다)';
+  } else {
+    dateWrap.style.display = 'none';
+    document.getElementById('dateInput').value = '';
+    input.placeholder = '할 일 제목을 입력하세요';
+  }
+}
+
+// ── 기존 데이터 마이그레이션 ──
+(function() {
+  var changed = false;
+  todos = todos.map(function(t) {
+    // subItems 없는 구버전 데이터
+    if (!t.subItems) {
+      changed = true;
+      var subs = [];
+      if (t.detail && t.detail.trim()) {
+        subs = t.detail.trim().split('\n')
+          .map(function(l){ return l.trim(); })
+          .filter(function(l){ return l.length > 0; })
+          .map(function(l){ return {text:l, done:false, carried:false}; });
+      }
+      var newT = {
+        id:       t.id,
+        text:     t.text,
+        subItems: subs,
+        date:     t.date     || '',
+        folderId: t.folderId || (DEFAULT_FOLDERS[1] ? DEFAULT_FOLDERS[1].id : ''),
+        priority: t.priority || '보통',
+        done:     t.done     || false,
+        carried:  t.carried  || false
+      };
+      return newT;
+    }
+    return t;
+  });
+  if (changed) localStorage.setItem('todos', JSON.stringify(todos));
+})();
+
+function save() {
+  localStorage.setItem('folders', JSON.stringify(folders));
+  localStorage.setItem('todos',   JSON.stringify(todos));
+  localStorage.setItem('ideas',   JSON.stringify(ideas));
+  saveToFirestore();
+}
+
+// ── 페이지 전환 ──
+function switchPage(page) {
+  currentPage = page;
+  document.getElementById('pageTodos').style.display  = page === 'todos' ? '' : 'none';
+  document.getElementById('pageIdeas').style.display  = page === 'ideas' ? '' : 'none';
+  document.getElementById('sidebarTodos').style.display = page === 'todos' ? '' : 'none';
+  document.getElementById('navTodos').classList.toggle('active', page === 'todos');
+  document.getElementById('navIdeas').classList.toggle('active', page === 'ideas');
+  if (page === 'ideas') { migrateIdeas(); renderIdeas(); }
+}
+
+// ── 아이디어 데이터 마이그레이션 (구 형식 → 신 형식) ──
+function migrateIdeas() {
+  if (!ideas.length || ideas[0].categories !== undefined) return;
+  var map = {};
+  ideas.forEach(function(old) {
+    if (!map[old.title]) {
+      map[old.title] = { id: old.id, title: old.title, createdAt: old.createdAt, categories: [] };
+    }
+    if (old.category || old.content) {
+      map[old.title].categories.push({
+        id: Date.now() + Math.random(),
+        name: old.category || '일반',
+        content: old.content || '',
+        createdAt: old.createdAt
+      });
+    }
+  });
+  ideas = Object.values(map);
+  save();
+}
+
+// ── 제목 입력 시 기존 제목 힌트 ──
+function onIdeaTitleInput(val) {
+  var exists = ideas.some(function(g){ return g.title === val.trim(); });
+  var hint = document.getElementById('ideaTitleHint');
+  hint.style.display = (exists && val.trim()) ? 'block' : 'none';
+  updateIdeaTitleList();
+}
+function updateIdeaTitleList() {
+  var dl = document.getElementById('ideaTitleList');
+  dl.innerHTML = ideas.map(function(g){
+    return '<option value="'+g.title+'">';
+  }).join('');
+}
+
+// ── 아이디어 추가 ──
+function addIdea() {
+  var title    = document.getElementById('ideaTitleInput').value.trim();
+  var catName  = document.getElementById('ideaCategoryInput').value.trim();
+  var content  = document.getElementById('ideaContentInput').value.trim();
+  if (!title)   { document.getElementById('ideaTitleInput').focus(); return; }
+  if (!catName) { document.getElementById('ideaCategoryInput').focus(); return; }
+
+  var newCat = { id: Date.now(), name: catName, content: content, createdAt: new Date().toISOString() };
+  var group  = ideas.find(function(g){ return g.title === title; });
+
+  if (group) {
+    group.categories.unshift(newCat);
+  } else {
+    ideas.unshift({ id: Date.now()+1, title: title, createdAt: new Date().toISOString(), categories: [newCat] });
+  }
+
+  document.getElementById('ideaTitleInput').value    = '';
+  document.getElementById('ideaCategoryInput').value = '';
+  document.getElementById('ideaContentInput').value  = '';
+  document.getElementById('ideaTitleHint').style.display = 'none';
+  save(); renderIdeas();
+}
+
+// ── 토글 ──
+function toggleIdeaGroup(gid) {
+  var cats = document.getElementById('igcats-'+gid);
+  var arr  = document.getElementById('igarr-'+gid);
+  if (!cats) return;
+  cats.classList.toggle('open');
+  if (arr) arr.classList.toggle('open');
+}
+function toggleIdeaCat(cid) {
+  var body = document.getElementById('icbody-'+cid);
+  var arr  = document.getElementById('icarr-'+cid);
+  if (!body) return;
+  body.classList.toggle('open');
+  if (arr) arr.classList.toggle('open');
+}
+
+// ── 삭제 ──
+function deleteIdeaGroup(gid) {
+  ideas = ideas.filter(function(g){ return g.id !== gid; });
+  save(); renderIdeas();
+}
+function deleteIdeaCat(gid, cid) {
+  var group = ideas.find(function(g){ return g.id === gid; });
+  if (!group) return;
+  group.categories = group.categories.filter(function(c){ return c.id !== cid; });
+  if (!group.categories.length) ideas = ideas.filter(function(g){ return g.id !== gid; });
+  save(); renderIdeas();
+}
+
+// ── 수정 ──
+var editingIdeaId = null;
+var editingCatId  = null;
+function openIdeaEdit(gid, cid) {
+  var group = ideas.find(function(g){ return g.id === gid; });
+  if (!group) return;
+  var cat = group.categories.find(function(c){ return c.id === cid; });
+  if (!cat) return;
+  editingIdeaId = gid;
+  editingCatId  = cid;
+  document.getElementById('ideaEditCategory').value = cat.name;
+  document.getElementById('ideaEditContent').value  = cat.content || '';
+  document.getElementById('ideaModal').classList.add('open');
+}
+function saveIdeaEdit() {
+  var catName = document.getElementById('ideaEditCategory').value.trim();
+  var content = document.getElementById('ideaEditContent').value.trim();
+  if (!catName) return;
+  var group = ideas.find(function(g){ return g.id === editingIdeaId; });
+  if (group) {
+    group.categories = group.categories.map(function(c){
+      return c.id === editingCatId ? Object.assign({}, c, { name: catName, content: content }) : c;
+    });
+  }
+  editingIdeaId = null; editingCatId = null;
+  closeModal('ideaModal');
+  save(); renderIdeas();
+}
+
+function formatIdeaDate(iso) {
+  var d = new Date(iso);
+  return (d.getMonth()+1)+'월 '+d.getDate()+'일';
+}
+
+// ── 렌더링 ──
+function renderIdeas() {
+  updateIdeaTitleList();
+  var list = document.getElementById('ideasGrid');
+  if (!ideas.length) {
+    list.innerHTML = '<div class="idea-empty">아직 아이디어가 없어요 💡<br><span style="font-size:12px;margin-top:6px;display:block">위에서 첫 번째 아이디어를 추가해보세요</span></div>';
+    return;
+  }
+  list.innerHTML = ideas.map(function(group) {
+    var cats = group.categories || [];
+    var catsHtml = cats.map(function(cat) {
+      var hasContent = cat.content && cat.content.trim();
+      return '<div class="idea-cat-item">'
+        + '<div class="idea-cat-header" onclick="'+(hasContent ? 'toggleIdeaCat('+cat.id+')' : '')+'">'
+        + '<span class="idea-cat-tag"># '+cat.name+'</span>'
+        + '<span class="idea-cat-date">'+formatIdeaDate(cat.createdAt)+'</span>'
+        + (hasContent ? '<span class="idea-cat-arrow" id="icarr-'+cat.id+'">▼</span>' : '<span style="flex:0 0 16px"></span>')
+        + '<div class="idea-cat-actions">'
+        + '<button class="idea-cat-edit" onclick="event.stopPropagation();openIdeaEdit('+group.id+','+cat.id+')">✏️</button>'
+        + '<button class="idea-cat-del"  onclick="event.stopPropagation();deleteIdeaCat('+group.id+','+cat.id+')">×</button>'
+        + '</div>'
+        + '</div>'
+        + (hasContent ? '<div class="idea-cat-body" id="icbody-'+cat.id+'">'+cat.content+'</div>' : '')
+        + '</div>';
+    }).join('');
+
+    return '<div class="idea-group">'
+      + '<div class="idea-group-header" onclick="toggleIdeaGroup('+group.id+')">'
+      + '<span class="idea-group-icon">💡</span>'
+      + '<span class="idea-group-title">'+group.title+'</span>'
+      + '<span class="idea-group-meta">'+cats.length+'개</span>'
+      + '<span class="idea-group-arrow" id="igarr-'+group.id+'">▼</span>'
+      + '<button class="idea-group-del" onclick="event.stopPropagation();deleteIdeaGroup('+group.id+')">×</button>'
+      + '</div>'
+      + '<div class="idea-cats" id="igcats-'+group.id+'">'
+      + catsHtml
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+// ── 날짜 헬퍼 ──
+function todayStr() {
+  var d = new Date();
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+}
+function tomorrowStr() {
+  var d = new Date(); d.setDate(d.getDate()+1);
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+}
+function pad(n){ return String(n).padStart(2,'0'); }
+function formatDateKR(s) {
+  var p = s.split('-'); return parseInt(p[1])+'월 '+parseInt(p[2])+'일';
+}
+function groupType(s) {
+  var t=todayStr(), tm=tomorrowStr();
+  if (s < t)  return 'overdue';
+  if (s === t)  return 'today';
+  if (s === tm) return 'tomorrow';
+  return 'upcoming';
+}
+
+// ── isDone ──
+function isDone(t) {
+  if (t.subItems && t.subItems.length > 0) return t.subItems.every(function(s){ return s.done; });
+  return t.done;
+}
+
+// ── 날짜 하루 더하기 ──
+function addOneDay(dateStr) {
+  var d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + 1);
+  return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+}
+
+// ── 자정 이월 ──
+// 앱을 열 때 + 매 60초: 날짜 지난 미완료 항목을 하루씩 오늘까지 이월
+function carryOver() {
+  try {
+    var today = todayStr();
+    var changed = true;
+
+    // 하루씩 이동하며 오늘까지 반복 (며칠치 밀렸어도 순서대로 이월)
+    while (changed) {
+      changed = false;
+      var newTodos = [];
+
+      todos.forEach(function(t) {
+        // 날짜 없거나 오늘 이후면 그대로 유지
+        if (!t.date || t.date >= today) {
+          newTodos.push(t);
+          return;
+        }
+
+        var nextDay   = addOneDay(t.date);
+        var hasSubs   = t.subItems && t.subItems.length > 0;
+        // 날짜 자동생성 제목이면 다음날 날짜로 제목도 갱신
+        var autoTitle = (t.text === formatDateKR(t.date));
+        var newText   = autoTitle ? formatDateKR(nextDay) : t.text;
+
+        // ── 서브아이템 없는 항목 ──
+        if (!hasSubs) {
+          if (t.done) {
+            newTodos.push(t); // 완료 → 원래 날짜에 보존
+          } else {
+            // 미완료 → 다음날로 이월
+            changed = true;
+            newTodos.push(Object.assign({}, t, {
+              date:     nextDay,
+              text:     newText,
+              carried:  true,
+              priority: '높음'
+            }));
+          }
+          return;
+        }
+
+        // ── 서브아이템 있는 항목 ──
+        var done   = t.subItems.filter(function(s){ return s.done; });
+        var undone = t.subItems.filter(function(s){ return !s.done; });
+
+        if (undone.length === 0) {
+          // 전부 완료 → 원래 날짜에 보존
+          newTodos.push(t);
+          return;
+        }
+
+        changed = true;
+        if (done.length > 0) {
+          // 완료된 서브아이템만 원래 날짜에 남김
+          newTodos.push(Object.assign({}, t, { subItems: done }));
+        }
+        // 미완료 서브아이템만 다음날로 이월 (제목도 다음날짜로)
+        newTodos.push(Object.assign({}, t, {
+          id:       Date.now() + Math.random(),
+          date:     nextDay,
+          text:     newText,
+          carried:  true,
+          priority: '높음',
+          done:     false,
+          subItems: undone.map(function(s){
+            return Object.assign({}, s, { carried: true });
+          })
+        }));
+      });
+
+      todos = newTodos;
+    }
+
+    // ── 같은 날짜에 기존 항목이 있으면 이월 내용을 그 안에 합치기 ──
+    // 비이월 항목 먼저, 이월 항목은 같은 날짜+폴더 기존 항목에 병합
+    var sorted = todos.slice().sort(function(a, b) {
+      return (a.carried ? 1 : 0) - (b.carried ? 1 : 0);
+    });
+    var merged = [];
+    var dateMap = {}; // "date|folderId" → merged 배열 인덱스
+
+    sorted.forEach(function(t) {
+      var key = (t.date || '') + '|' + (t.folderId || '');
+      if (!t.carried || !t.date) {
+        // 일반 항목: 그대로 추가하고 위치 기록
+        dateMap[key] = merged.length;
+        merged.push(t);
+      } else {
+        if (dateMap[key] !== undefined) {
+          // 같은 날짜+폴더의 기존 항목에 이월 서브아이템 추가
+          var target = merged[dateMap[key]];
+          var carriedSubs = t.subItems && t.subItems.length > 0
+            ? t.subItems
+            : [{ text: t.text, done: false, carried: true }];
+          target.subItems = (target.subItems || []).concat(carriedSubs);
+        } else {
+          // 기존 항목 없으면 이월 항목 그대로 추가
+          dateMap[key] = merged.length;
+          merged.push(t);
+        }
+      }
+    });
+    todos = merged;
+
+    save();
+  } catch(e) {
+    console.error('carryOver 오류:', e);
+  }
+}
+
+// ── 폴더 렌더 ──
+function renderFolders() {
+  document.getElementById('folderList').innerHTML = folders.map(function(f) {
+    var cnt = f.id==='all'
+      ? todos.filter(function(t){ return !isDone(t); }).length
+      : todos.filter(function(t){ return t.folderId===f.id && !isDone(t); }).length;
+    return '<div class="folder-item '+(currentFolder===f.id?'active':'')+'" onclick="selectFolder(\''+f.id+'\')">'
+      +'<span class="folder-icon">'+f.emoji+'</span>'
+      +'<span class="folder-name">'+f.name+'</span>'
+      +'<span class="folder-count">'+cnt+'</span>'
+      +(!f.fixed?'<button class="folder-del" onclick="deleteFolder(event,\''+f.id+'\')">✕</button>':'')
+      +'</div>';
+  }).join('');
+  var nonAll = folders.filter(function(f){ return !f.fixed; });
+  var opts   = nonAll.map(function(f){ return '<option value="'+f.id+'">'+f.emoji+' '+f.name+'</option>'; }).join('');
+  document.getElementById('folderSelect').innerHTML = opts;
+  document.getElementById('editFolder').innerHTML   = opts;
+  var cf = folders.find(function(f){ return f.id===currentFolder; }) || folders[0];
+  document.getElementById('currentEmoji').textContent      = cf.emoji;
+  document.getElementById('currentFolderName').textContent = cf.name;
+}
+
+function selectFolder(id) { currentFolder=id; renderFolders(); renderTodos(); }
+function deleteFolder(e,id) {
+  e.stopPropagation();
+  // confirm()은 WKWebView에서 동작 안 함 — 바로 삭제
+  folders = folders.filter(function(f){ return f.id!==id; });
+  todos   = todos.filter(function(t){ return t.folderId!==id; });
+  if (currentFolder===id) currentFolder='all';
+  save(); renderFolders(); renderTodos();
+}
+function openNewFolder() {
+  selectedEmoji='📁'; document.getElementById('folderNameInput').value='';
+  renderEmojiPicker(); document.getElementById('folderModal').classList.add('open');
+}
+function renderEmojiPicker() {
+  document.getElementById('emojiPicker').innerHTML = EMOJIS.map(function(e){
+    return '<div class="emoji-opt '+(e===selectedEmoji?'selected':'')+'" onclick="pickEmoji(\''+e+'\')">'+e+'</div>';
+  }).join('');
+}
+function pickEmoji(e) { selectedEmoji=e; renderEmojiPicker(); }
+function saveFolder() {
+  var name = document.getElementById('folderNameInput').value.trim(); if (!name) return;
+  var f = {id:'f_'+Date.now(), name:name, emoji:selectedEmoji, fixed:false};
+  folders.push(f); save(); renderFolders(); closeModal('folderModal'); selectFolder(f.id);
+}
+
+// ── CRUD ──
+document.getElementById('todoInput').addEventListener('keydown', function(e){ if(e.key==='Enter') addTodo(); });
+
+function parseSubs(text) {
+  if (!text || !text.trim()) return [];
+  return text.trim().split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l; })
+    .map(function(l){ return {text:l, done:false, carried:false}; });
+}
+// 수정 저장 시 기존 체크 상태 유지 (텍스트가 같으면 done/carried 보존)
+function parseSubsKeepState(text, existingSubs) {
+  if (!text || !text.trim()) return [];
+  var stateMap = {};
+  (existingSubs || []).forEach(function(s){ stateMap[s.text.trim()] = s; });
+  return text.trim().split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l; })
+    .map(function(l){
+      var prev = stateMap[l];
+      return { text: l, done: prev ? prev.done : false, carried: prev ? prev.carried : false };
+    });
+}
+
+function addTodo() {
+  var rawText = document.getElementById('todoInput').value.trim();
+  var date    = listType === 'date' ? document.getElementById('dateInput').value : '';
+  var text    = rawText || (date ? formatDateKR(date) : '');
+  if (!text) {
+    alert(listType === 'date' ? '할 일 제목 또는 날짜를 입력해주세요.' : '할 일 제목을 입력해주세요.');
+    return;
+  }
+  var nonAll = folders.filter(function(f){ return !f.fixed; });
+  if (!nonAll.length) { alert('먼저 폴더를 만들어주세요!'); return; }
+  todos.push({
+    id:       Date.now(),
+    text:     text,
+    subItems: parseSubs(document.getElementById('detailInput').value),
+    date:     date,
+    folderId: document.getElementById('folderSelect').value,
+    priority: document.getElementById('prioritySelect').value,
+    done:     false,
+    carried:  false
+  });
+  document.getElementById('todoInput').value   = '';
+  document.getElementById('detailInput').value = '';
+  document.getElementById('dateInput').value   = '';
+  save(); renderFolders(); renderTodos();
+}
+
+function toggleSub(todoId, idx) {
+  todos = todos.map(function(t) {
+    if (t.id !== todoId) return t;
+    var subs = t.subItems.map(function(s,i){ return i===idx ? Object.assign({},s,{done:!s.done}) : s; });
+    // 체크된 항목은 맨 아래로 이동
+    subs.sort(function(a,b){ return (a.done?1:0)-(b.done?1:0); });
+    return Object.assign({},t,{subItems:subs});
+  });
+  save(); renderFolders(); renderTodos();
+}
+
+function toggleDoneItem(id) {
+  todos = todos.map(function(t){ return t.id===id ? Object.assign({},t,{done:!t.done}) : t; });
+  save(); renderFolders(); renderTodos();
+}
+
+function deleteTodo(id) {
+  todos = todos.filter(function(t){ return t.id!==id; });
+  save(); renderFolders(); renderTodos();
+}
+
+function openEdit(id) {
+  var t = todos.find(function(t){ return t.id===id; }); if (!t) return;
+  editingId = id;
+  var autoTitle = t.date ? formatDateKR(t.date) : '';
+  document.getElementById('editText').value     = (t.text === autoTitle) ? '' : t.text;
+  document.getElementById('editDetail').value   = t.subItems ? t.subItems.map(function(s){ return s.text; }).join('\n') : '';
+  document.getElementById('editDate').value     = t.date || '';
+  document.getElementById('editFolder').value   = t.folderId;
+  document.getElementById('editPriority').value = t.priority;
+  document.getElementById('editModal').classList.add('open');
+}
+function saveEdit() {
+  var rawText = document.getElementById('editText').value.trim();
+  var date    = document.getElementById('editDate').value;
+  var text    = rawText || (date ? formatDateKR(date) : '');
+  if (!text) return;
+  todos = todos.map(function(t) {
+    if (t.id !== editingId) return t;
+    // 기존 서브아이템의 체크 상태를 보존하며 파싱
+    return Object.assign({},t,{
+      text:     text,
+      subItems: parseSubsKeepState(document.getElementById('editDetail').value, t.subItems),
+      date:     date,
+      folderId: document.getElementById('editFolder').value,
+      priority: document.getElementById('editPriority').value
+    });
+  });
+  closeModal('editModal'); editingId=null;
+  save(); renderFolders(); renderTodos();
+}
+
+function toggleShow(type, btn) {
+  if (type==='date')   { showDoneDate   =!showDoneDate;   btn.textContent=showDoneDate   ?'완료 숨기기':'완료 보기'; }
+  if (type==='nodate') { showDoneNodate =!showDoneNodate; btn.textContent=showDoneNodate ?'완료 숨기기':'완료 보기'; }
+  renderTodos();
+}
+
+// ── ToDo List 드래그 순서 변경 ──
+var dragSrcId = null;
+var dropInfo  = null;
+
+function clearDropIndicators() {
+  document.querySelectorAll('.drop-before,.drop-after').forEach(function(el){
+    el.classList.remove('drop-before','drop-after');
+  });
+}
+
+function onDragStart(e, id) {
+  dragSrcId = id;
+  dropInfo  = null;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', String(id));
+  setTimeout(function(){
+    var el = document.getElementById('nocard-'+id);
+    if (el) el.classList.add('dragging');
+  }, 0);
+}
+
+function onDragEnd(e, id) {
+  clearDropIndicators();
+  var el = document.getElementById('nocard-'+id);
+  if (el) el.classList.remove('dragging');
+  dragSrcId = null;
+  dropInfo  = null;
+}
+
+function onDragOver(e, id) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (!dragSrcId || dragSrcId === id) return;
+
+  var el = document.getElementById('nocard-'+id);
+  if (!el) return;
+
+  var rect = el.getBoundingClientRect();
+  var pos  = (e.clientY - rect.top) < rect.height / 2 ? 'before' : 'after';
+  if (dropInfo && dropInfo.id === id && dropInfo.pos === pos) return;
+
+  clearDropIndicators();
+  dropInfo = { id: id, pos: pos };
+  el.classList.add('drop-' + pos);
+}
+
+function onDrop(e, targetId) {
+  e.preventDefault();
+  e.stopPropagation();
+  clearDropIndicators();
+  var srcEl = document.getElementById('nocard-'+dragSrcId);
+  if (srcEl) srcEl.classList.remove('dragging');
+
+  if (!dragSrcId || !dropInfo) { dragSrcId = null; dropInfo = null; return; }
+
+  var srcIdx = todos.findIndex(function(t){ return t.id === dragSrcId; });
+  var tgtIdx = todos.findIndex(function(t){ return t.id === dropInfo.id; });
+  if (srcIdx < 0 || tgtIdx < 0) { dragSrcId = null; dropInfo = null; return; }
+
+  var insertIdx = dropInfo.pos === 'after' ? tgtIdx + 1 : tgtIdx;
+  if (srcIdx < insertIdx) insertIdx--;
+
+  if (srcIdx !== insertIdx) {
+    var item = todos.splice(srcIdx, 1)[0];
+    todos.splice(insertIdx, 0, item);
+    save();
+  }
+  dragSrcId = null;
+  dropInfo  = null;
+  renderTodos();
+}
+
+function manualCarryOver() {
+  var btn = document.getElementById('refreshBtn');
+  if (btn) btn.textContent = '⏳';
+  carryOver();
+  renderFolders();
+  renderTodos();
+  if (btn) {
+    btn.textContent = '✅';
+    setTimeout(function(){ btn.textContent = '🔄'; }, 1500);
+  }
+}
+
+function toggleMonthGroup(key) {
+  var body = document.getElementById('mbody-'+key);
+  var arr  = document.getElementById('marr-'+key);
+  if (!body) return;
+  var isOpen = body.classList.toggle('open');
+  if (arr) arr.classList.toggle('open');
+  if (isOpen) openMonths.add(key);
+  else openMonths.delete(key);
+}
+
+function toggleSubList(id) {
+  var el = document.getElementById('sub-'+id);
+  var ar = document.getElementById('arr-'+id);
+  if (!el) return;
+  el.classList.toggle('open');
+  if (ar) ar.classList.toggle('open');
+  if (el.classList.contains('open')) openSubLists.add(id);
+  else openSubLists.delete(id);
+}
+
+function toggleDetail(id) {
+  var el = document.getElementById('det-'+id);
+  var ar = document.getElementById('arr-'+id);
+  if (!el) return;
+  el.classList.toggle('open');
+  if (ar) ar.classList.toggle('open');
+  if (el.classList.contains('open')) openDetails.add(id);
+  else openDetails.delete(id);
+}
+
+// ── 날짜별 카드 HTML ──
+function datedCard(t) {
+  var folder  = folders.find(function(f){ return f.id===t.folderId; });
+  var hasSubs = t.subItems && t.subItems.length > 0;
+  var allDone = isDone(t);
+  var doneCnt = hasSubs ? t.subItems.filter(function(s){ return s.done; }).length : 0;
+  var pClass  = t.priority==='높음'?'tag-high':t.priority==='보통'?'tag-mid':'tag-low';
+
+  var meta = (folder ? '<span class="tag tag-cat">'+folder.emoji+' '+folder.name+'</span>' : '')
+    + '<span class="tag '+pClass+'">'+t.priority+'</span>'
+    + (t.carried ? '<span class="tag tag-carried">↩ 이월</span>' : '')
+    + (hasSubs   ? '<span class="tag-prog">'+doneCnt+'/'+t.subItems.length+' 완료</span>' : '');
+
+  var actions = '<div class="card-actions">'
+    + '<button class="edit-btn" onclick="event.stopPropagation();openEdit('+t.id+')">✏️</button>'
+    + '<button class="del-btn"  onclick="event.stopPropagation();deleteTodo('+t.id+')">×</button>'
+    + '</div>';
+
+  if (!hasSubs) {
+    // 세부내용 없으면 탭해서 완료 토글
+    return '<div class="todo-card '+(allDone?'faded':'')+'"><div class="card-main" onclick="toggleDoneItem('+t.id+')">'
+      + '<div class="card-text-wrap">'
+      + '<div class="card-title '+(allDone?'striked':'')+'">'+t.text+'</div>'
+      + '<div class="card-meta">'+meta+'</div>'
+      + '</div>'+actions+'</div></div>';
+  }
+
+  // 서브아이템 있으면 탭해서 체크리스트 펼침
+  var subRows = t.subItems.map(function(s,i) {
+    return '<div class="sub-item">'
+      + '<div class="sub-check '+(s.done?'on':'')+'" onclick="toggleSub('+t.id+','+i+')"></div>'
+      + '<span class="sub-label '+(s.done?'done':'')+'">'+s.text+'</span>'
+      + (s.carried ? '<span class="sub-carried">↩ 이월</span>' : '')
+      + '</div>';
+  }).join('');
+
+  return '<div class="todo-card '+(allDone?'faded':'')+'"><div class="card-main" onclick="toggleSubList('+t.id+')">'
+    + '<div class="card-text-wrap">'
+    + '<div class="card-title">'+t.text+'</div>'
+    + '<div class="card-meta">'+meta+'</div>'
+    + '</div>'
+    + '<span class="card-arrow" id="arr-'+t.id+'">▼</span>'
+    + actions
+    + '</div>'
+    + '<div class="sub-list" id="sub-'+t.id+'">'+subRows+'</div>'
+    + '</div>';
+}
+
+// ── TODO LIST 카드 HTML (드래그 순서 변경 지원) ──
+function nodateCard(t) {
+  var folder  = folders.find(function(f){ return f.id===t.folderId; });
+  var hasSubs = t.subItems && t.subItems.length > 0;
+  var pClass  = t.priority==='높음'?'tag-high':t.priority==='보통'?'tag-mid':'tag-low';
+
+  var meta = (folder ? '<span class="tag tag-cat">'+folder.emoji+' '+folder.name+'</span>' : '')
+    + '<span class="tag '+pClass+'">'+t.priority+'</span>';
+
+  var actions = '<div class="card-actions">'
+    + '<button class="edit-btn" onclick="event.stopPropagation();openEdit('+t.id+')">✏️</button>'
+    + '<button class="del-btn"  onclick="event.stopPropagation();deleteTodo('+t.id+')">×</button>'
+    + '</div>';
+
+  var dragAttrs = 'id="nocard-'+t.id+'" draggable="true"'
+    + ' ondragstart="onDragStart(event,'+t.id+')"'
+    + ' ondragend="onDragEnd(event,'+t.id+')"'
+    + ' ondragover="onDragOver(event,'+t.id+')"'
+    + ' ondrop="onDrop(event,'+t.id+')"';
+
+  var handle = '<span class="drag-handle" onclick="event.stopPropagation()">⠿</span>';
+
+  if (!hasSubs) {
+    return '<div class="todo-card" '+dragAttrs+'><div class="card-main">'
+      + handle
+      + '<div class="card-text-wrap">'
+      + '<div class="card-title">'+t.text+'</div>'
+      + '<div class="card-meta">'+meta+'</div>'
+      + '</div>'+actions+'</div></div>';
+  }
+
+  var detailText = t.subItems.map(function(s){ return s.text; }).join('<br>');
+
+  return '<div class="todo-card" '+dragAttrs+'><div class="card-main" onclick="toggleDetail('+t.id+')">'
+    + handle
+    + '<div class="card-text-wrap">'
+    + '<div class="card-title">'+t.text+'</div>'
+    + '<div class="card-meta">'+meta+'<span class="tag-prog">📝</span></div>'
+    + '</div>'
+    + '<span class="card-arrow" id="arr-'+t.id+'">▼</span>'
+    + actions
+    + '</div>'
+    + '<div class="detail-view" id="det-'+t.id+'">'+detailText+'</div>'
+    + '</div>';
+}
+
+// ── 렌더 ──
+function renderTodos() {
+  var pool = (currentFolder==='all' ? todos : todos.filter(function(t){ return t.folderId===currentFolder; }));
+
+  var doneCount = pool.filter(function(t){ return isDone(t); }).length;
+  document.getElementById('subtitle').textContent = '총 '+pool.length+'개 중 '+doneCount+'개 완료';
+  var pct = pool.length ? Math.round(doneCount/pool.length*100) : 0;
+  document.getElementById('progress').style.width = pct+'%';
+  var pp = document.getElementById('progressPct');
+  if (pp) pp.textContent = pct+'% 완료';
+
+  // Daily Works: 날짜순 정렬 / ToDo List: 드래그 순서 유지(배열 순서 그대로)
+  var dated   = pool.filter(function(t){ return t.date; }).sort(function(a,b){ return b.date.localeCompare(a.date); });
+  var nodated = pool.filter(function(t){ return !t.date; });
+
+  document.getElementById('dateCount').textContent   = dated.length;
+  document.getElementById('nodateCount').textContent = nodated.length;
+
+  // 왼쪽: 날짜별
+  var visDated = dated.filter(function(t){ return showDoneDate || !isDone(t); });
+  var dl = document.getElementById('dateList');
+  if (!visDated.length) {
+    dl.innerHTML = '<div class="empty">날짜 할 일이 없어요 📅</div>';
+  } else {
+    var groups = {};
+    visDated.forEach(function(t){ if (!groups[t.date]) groups[t.date]=[]; groups[t.date].push(t); });
+
+    // 그룹 내 정렬: 일반 항목 먼저(우선순위순), 이월 항목은 아래로
+    Object.keys(groups).forEach(function(date) {
+      groups[date].sort(function(a, b) {
+        if (a.carried !== b.carried) return a.carried ? 1 : -1;
+        return pOrder[a.priority] - pOrder[b.priority];
+      });
+    });
+
+    var today2 = todayStr();
+
+    var sortedDates = Object.keys(groups).sort(function(a, b) {
+      var aIsPast = a < today2;
+      var bIsPast = b < today2;
+      if (aIsPast !== bIsPast) return aIsPast ? 1 : -1;
+      if (!aIsPast) return a.localeCompare(b);
+      return b.localeCompare(a);
+    });
+
+    // 오늘+미래 날짜: 그대로 표시 / 지난 날짜: 월별로 묶기
+    var futureDates = sortedDates.filter(function(d){ return d >= today2; });
+    var pastDates   = sortedDates.filter(function(d){ return d <  today2; });
+
+    // 오늘·미래 날짜 HTML
+    var futureHtml = futureDates.map(function(date) {
+      var gt  = groupType(date);
+      var lbl = gt==='today' ? '오늘' : gt==='tomorrow' ? '내일' : formatDateKR(date);
+      return '<div class="date-group">'
+        + '<div class="date-group-label '+gt+'">'+lbl+'</div>'
+        + groups[date].map(datedCard).join('')
+        + '</div>';
+    }).join('');
+
+    // 지난 날짜 → 월별 아코디언
+    var monthMap = {};
+    var monthOrder = [];
+    pastDates.forEach(function(date) {
+      var mk = date.substring(0, 7);
+      if (!monthMap[mk]) { monthMap[mk] = []; monthOrder.push(mk); }
+      monthMap[mk].push(date);
+    });
+
+    var pastHtml = monthOrder.map(function(mk) {
+      var parts = mk.split('-');
+      var yr = parseInt(parts[0]);
+      var mo = parseInt(parts[1]);
+      var currentYear = new Date().getFullYear();
+      var monthLabel = (yr !== currentYear ? yr+'년 ' : '') + mo + '월';
+      var isOpen = openMonths.has(mk);
+      var totalItems = monthMap[mk].reduce(function(sum, d){ return sum + groups[d].length; }, 0);
+
+      var datesHtml = monthMap[mk].map(function(date) {
+        var lbl = formatDateKR(date);
+        return '<div class="date-group">'
+          + '<div class="date-group-label overdue">'+lbl+'</div>'
+          + groups[date].map(datedCard).join('')
+          + '</div>';
+      }).join('');
+
+      return '<div class="month-group">'
+        + '<div class="month-group-header" onclick="toggleMonthGroup(\''+mk+'\')">'
+        + '<span class="month-group-title">📅 '+monthLabel+'</span>'
+        + '<span class="month-group-count">'+totalItems+'개</span>'
+        + '<span class="month-group-arrow'+(isOpen?' open':'')+'" id="marr-'+mk+'">▼</span>'
+        + '</div>'
+        + '<div class="month-group-body'+(isOpen?' open':'')+'" id="mbody-'+mk+'">'
+        + datesHtml
+        + '</div>'
+        + '</div>';
+    }).join('');
+
+    // 미래와 과거 사이 구분선
+    var divider = (futureDates.length && pastDates.length)
+      ? '<div style="border-top:1.5px dashed #e2e8f0;margin:10px 0 12px;opacity:0.6;"></div>'
+      : '';
+
+    dl.innerHTML = futureHtml + divider + pastHtml;
+  }
+
+  // 오른쪽: TODO LIST
+  var visNodate = nodated.filter(function(t){ return showDoneNodate || !isDone(t); });
+  var nl = document.getElementById('nodateList');
+  nl.innerHTML = visNodate.length
+    ? visNodate.map(nodateCard).join('')
+    : '<div class="empty">ToDo List가 없어요 📝</div>';
+
+  // 열려있던 서브리스트 복원 (Daily Works)
+  openSubLists.forEach(function(id) {
+    var el = document.getElementById('sub-'+id);
+    var ar = document.getElementById('arr-'+id);
+    if (el) el.classList.add('open');
+    if (ar) ar.classList.add('open');
+  });
+
+  // 열려있던 상세내용 복원 (ToDo List)
+  openDetails.forEach(function(id) {
+    var el = document.getElementById('det-'+id);
+    var ar = document.getElementById('arr-'+id);
+    if (el) el.classList.add('open');
+    if (ar) ar.classList.add('open');
+  });
+}
+
+function closeModal(id, e) {
+  if (e && e.target !== document.getElementById(id)) return;
+  document.getElementById(id).classList.remove('open');
+}
+
+function runStartup() {
+  if (startupDone) return;
+  startupDone = true;
+  localStorage.removeItem('lastCarryOver');
+  carryOver();
+  setInterval(function(){
+    carryOver(); renderFolders(); renderTodos();
+  }, 60000);
+  renderFolders();
+  renderTodos();
+}
+
+// 아이디어 제목 입력에서 Enter → 내용 입력창으로 포커스
+document.getElementById('ideaTitleInput').addEventListener('keydown', function(e){
+  if (e.key === 'Enter') { e.preventDefault(); document.getElementById('ideaCategoryInput').focus(); }
+});
+document.getElementById('ideaCategoryInput').addEventListener('keydown', function(e){
+  if (e.key === 'Enter') { e.preventDefault(); document.getElementById('ideaContentInput').focus(); }
+});
+</script>
+</body>
+</html>
