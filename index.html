@@ -798,7 +798,11 @@ function applySyncCode(code) {
         localStorage.setItem('ideas',   JSON.stringify(ideas));
         setSyncStatus('✓ 동기화됨');
       } else {
-        saveToFirestore(); // 첫 접속: 로컬 데이터 Firestore에 업로드
+        // Firestore에 데이터 없음 → 로컬에 의미있는 데이터가 있을 때만 업로드
+        // (빈 iPhone 데이터로 맥 데이터를 덮어쓰는 것 방지)
+        if (todos.length > 0 || ideas.length > 0) {
+          saveToFirestore();
+        }
       }
       if (!fbLoaded) {
         fbLoaded = true;
