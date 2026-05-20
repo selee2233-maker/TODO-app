@@ -581,7 +581,10 @@ select:focus { border-color:var(--blue); }
         </div>
         <button onclick="doSignOut()" style="background:none;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.45);cursor:pointer;border-radius:6px;padding:3px 8px;font-size:9px;font-family:inherit;white-space:nowrap;flex-shrink:0;">로그아웃</button>
       </div>
-      <div id="syncStatus" style="font-size:9px;color:rgba(201,162,39,0.7);text-align:center;padding-bottom:4px;">✓ 동기화됨</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 2px 4px;">
+        <div id="syncStatus" style="font-size:9px;color:rgba(201,162,39,0.7);">✓ 동기화됨</div>
+        <button onclick="manualSync()" style="background:rgba(201,162,39,0.15);border:1px solid rgba(201,162,39,0.3);color:#c9a227;cursor:pointer;border-radius:6px;padding:3px 9px;font-size:10px;font-family:inherit;font-weight:600;white-space:nowrap;" title="지금 동기화">🔄 동기화</button>
+      </div>
     </div>
   </div>
 
