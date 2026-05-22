@@ -1583,6 +1583,12 @@ function datedCard(t) {
   var doneCnt = hasSubs ? t.subItems.filter(function(s){ return s.done; }).length : 0;
   var pClass  = t.priority==='높음'?'tag-high':t.priority==='보통'?'tag-mid':'tag-low';
 
+  // 날짜 - 제목 표시: 제목이 날짜 자동생성이 아니면 앞에 날짜 붙임
+  var autoTitle = t.date ? formatDateKR(t.date) : '';
+  var displayTitle = (t.date && t.text && t.text !== autoTitle)
+    ? '<span style="color:var(--muted);font-weight:500;margin-right:4px;">'+autoTitle+'</span>— '+t.text
+    : t.text;
+
   var meta = (folder ? '<span class="tag tag-cat">'+folder.emoji+' '+folder.name+'</span>' : '')
     + '<span class="tag '+pClass+'">'+t.priority+'</span>'
     + (t.carried ? '<span class="tag tag-carried">↩ 이월</span>' : '')
@@ -1597,7 +1603,7 @@ function datedCard(t) {
     // 세부내용 없으면 탭해서 완료 토글
     return '<div class="todo-card '+(allDone?'faded':'')+'"><div class="card-main" onclick="toggleDoneItem('+t.id+')">'
       + '<div class="card-text-wrap">'
-      + '<div class="card-title '+(allDone?'striked':'')+'">'+t.text+'</div>'
+      + '<div class="card-title '+(allDone?'striked':'')+'">'+displayTitle+'</div>'
       + '<div class="card-meta">'+meta+'</div>'
       + '</div>'+actions+'</div></div>';
   }
@@ -1613,7 +1619,7 @@ function datedCard(t) {
 
   return '<div class="todo-card '+(allDone?'faded':'')+'"><div class="card-main" onclick="toggleSubList('+t.id+')">'
     + '<div class="card-text-wrap">'
-    + '<div class="card-title">'+t.text+'</div>'
+    + '<div class="card-title">'+displayTitle+'</div>'
     + '<div class="card-meta">'+meta+'</div>'
     + '</div>'
     + '<span class="card-arrow" id="arr-'+t.id+'">▼</span>'
