@@ -1618,7 +1618,7 @@ function toggleDetail(id) {
 }
 
 // ── 날짜별 카드 HTML ──
-function datedCard(t) {
+function datedCard(t, isToday) {
   var folder  = folders.find(function(f){ return f.id===t.folderId; });
   var hasSubs = t.subItems && t.subItems.length > 0;
   var allDone = isDone(t);
@@ -1631,7 +1631,9 @@ function datedCard(t) {
     ? '<span style="font-weight:700;margin-right:5px;">'+autoTitle+'</span><span style="color:var(--muted);font-weight:400;">— '+t.text+'</span>'
     : t.text;
 
-  var meta = (folder ? '<span class="tag tag-cat">'+folder.emoji+' '+folder.name+'</span>' : '')
+  var todayBadge = isToday ? '<span class="tag" style="background:#faf6ec;color:#8a6d1c;font-weight:700;">오늘</span>' : '';
+
+  var meta = todayBadge + (folder ? '<span class="tag tag-cat">'+folder.emoji+' '+folder.name+'</span>' : '')
     + '<span class="tag '+pClass+'">'+t.priority+'</span>'
     + (t.carried ? '<span class="tag tag-carried">↩ 이월</span>' : '')
     + (hasSubs   ? '<span class="tag-prog">'+doneCnt+'/'+t.subItems.length+' 완료</span>' : '');
@@ -1770,9 +1772,11 @@ function renderTodos() {
     var futureHtml = futureDates.map(function(date) {
       var gt  = groupType(date);
       var lbl = gt==='today' ? '오늘' : gt==='tomorrow' ? '내일' : formatDateKR(date);
+      // 오늘은 라벨 없이 바로 카드 (컬럼 상단 정렬용)
+      var labelHtml = gt==='today' ? '' : '<div class="date-group-label '+gt+'">'+lbl+'</div>';
       return '<div class="date-group">'
-        + '<div class="date-group-label '+gt+'">'+lbl+'</div>'
-        + groups[date].map(datedCard).join('')
+        + labelHtml
+        + groups[date].map(function(t){ return datedCard(t, gt==='today'); }).join('')
         + '</div>';
     }).join('');
 
