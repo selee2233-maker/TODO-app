@@ -270,6 +270,28 @@ select:focus { border-color:var(--blue); }
 .month-group-body { display:none; padding:0 2px; }
 .month-group-body.open { display:block; }
 
+/* ToDo List 폴더 아코디언 */
+.folder-group { margin-bottom:10px; }
+.folder-group-header {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 14px; cursor:pointer; user-select:none;
+  border-radius:12px; margin-bottom:0;
+  background:linear-gradient(135deg, #0f2347, #1a3a6b);
+  border:1.5px solid rgba(201,162,39,0.25);
+  transition:all .2s;
+}
+.folder-group-header:hover { background:linear-gradient(135deg, #1a3a6b, #0f2347); border-color:rgba(201,162,39,0.5); }
+.folder-group-label { font-size:13px; font-weight:700; color:#fff; flex:1; }
+.folder-group-count {
+  font-size:10px; font-weight:700;
+  background:rgba(201,162,39,0.25); color:#c9a227;
+  padding:2px 8px; border-radius:99px; border:1px solid rgba(201,162,39,0.4);
+}
+.folder-group-arrow { font-size:10px; color:rgba(255,255,255,0.5); transition:transform .2s; flex-shrink:0; }
+.folder-group-arrow.open { transform:rotate(90deg); }
+.folder-group-body { display:none; padding:6px 0 0; }
+.folder-group-body.open { display:block; }
+
 /* 할일 카드 */
 .todo-card {
   background:var(--card); border-radius:12px; margin-bottom:6px;
@@ -936,6 +958,7 @@ var listType      = 'date';
 var openSubLists  = new Set();
 var openDetails   = new Set();
 var openMonths    = new Set(); // 최초에는 모든 월 그룹 닫혀있음
+var openFolderGroups = new Set(); // ToDo List 폴더 아코디언
 
 function selectListType(type, btn) {
   listType = type;
@@ -1555,6 +1578,25 @@ function toggleMonthGroup(key) {
   else openMonths.delete(key);
 }
 
+function toggleFolderGroup(fid) {
+  var body = document.querySelector('.folder-group-body[data-fid="'+fid+'"]');
+  // querySelector로 못찾으면 직접 렌더링 후 DOM 조작
+  var bodies = document.querySelectorAll('.folder-group-body');
+  var arrows = document.querySelectorAll('.folder-group-arrow');
+  var headers = document.querySelectorAll('.folder-group-header');
+  for (var i=0; i<headers.length; i++) {
+    if (headers[i].getAttribute('onclick') && headers[i].getAttribute('onclick').indexOf("'"+fid+"'") > -1) {
+      var b = bodies[i], a = arrows[i];
+      if (!b) break;
+      var isOpen = b.classList.toggle('open');
+      if (a) a.classList.toggle('open');
+      if (isOpen) openFolderGroups.add(fid);
+      else openFolderGroups.delete(fid);
+      break;
+    }
+  }
+}
+
 function toggleSubList(id) {
   var el = document.getElementById('sub-'+id);
   var ar = document.getElementById('arr-'+id);
@@ -1780,12 +1822,39 @@ function renderTodos() {
     dl.innerHTML = futureHtml + divider + pastHtml;
   }
 
-  // 오른쪽: TODO LIST
+  // 오른쪽: TODO LIST — 폴더별 아코디언
   var visNodate = nodated.filter(function(t){ return showDoneNodate || !isDone(t); });
   var nl = document.getElementById('nodateList');
-  nl.innerHTML = visNodate.length
-    ? visNodate.map(nodateCard).join('')
-    : '<div class="empty">ToDo List가 없어요 📝</div>';
+
+  if (!visNodate.length) {
+    nl.innerHTML = '<div class="empty">ToDo List가 없어요 📝</div>';
+  } else {
+    // 폴더별로 그룹화
+    var folderGroups = {};
+    var folderOrder  = [];
+    visNodate.forEach(function(t) {
+      var fid = t.folderId || '__none__';
+      if (!folderGroups[fid]) { folderGroups[fid] = []; folderOrder.push(fid); }
+      folderGroups[fid].push(t);
+    });
+
+    nl.innerHTML = folderOrder.map(function(fid) {
+      var folder  = folders.find(function(f){ return f.id === fid; });
+      var label   = folder ? folder.emoji + ' ' + folder.name : '📋 미분류';
+      var cnt     = folderGroups[fid].length;
+      var isOpen  = openFolderGroups.has(fid);
+      var cards   = folderGroups[fid].map(nodateCard).join('');
+
+      return '<div class="folder-group">'
+        + '<div class="folder-group-header" onclick="toggleFolderGroup(\''+fid+'\')">'
+        + '<span class="folder-group-label">'+label+'</span>'
+        + '<span class="folder-group-count">'+cnt+'개</span>'
+        + '<span class="folder-group-arrow'+(isOpen?' open':'')+'">▶</span>'
+        + '</div>'
+        + '<div class="folder-group-body'+(isOpen?' open':'')+'">'+cards+'</div>'
+        + '</div>';
+    }).join('');
+  }
 
   // 열려있던 서브리스트 복원 (Daily Works)
   openSubLists.forEach(function(id) {
