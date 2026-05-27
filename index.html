@@ -276,18 +276,18 @@ select:focus { border-color:var(--blue); }
   display:flex; align-items:center; gap:10px;
   padding:10px 14px; cursor:pointer; user-select:none;
   border-radius:12px; margin-bottom:0;
-  background:linear-gradient(135deg, #0f2347, #1a3a6b);
-  border:1.5px solid rgba(201,162,39,0.25);
+  background:linear-gradient(135deg, #f5eedb, #ede4c8);
+  border:1.5px solid #ddd0aa;
   transition:all .2s;
 }
-.folder-group-header:hover { background:linear-gradient(135deg, #1a3a6b, #0f2347); border-color:rgba(201,162,39,0.5); }
-.folder-group-label { font-size:13px; font-weight:700; color:#fff; flex:1; }
+.folder-group-header:hover { background:linear-gradient(135deg, #ede4c8, #e0d4a8); }
+.folder-group-label { font-size:13px; font-weight:700; color:var(--text); flex:1; }
 .folder-group-count {
   font-size:10px; font-weight:700;
-  background:rgba(201,162,39,0.25); color:#c9a227;
-  padding:2px 8px; border-radius:99px; border:1px solid rgba(201,162,39,0.4);
+  background:linear-gradient(135deg, #c9a227, #8a6d1c);
+  color:#fff; padding:2px 8px; border-radius:99px;
 }
-.folder-group-arrow { font-size:10px; color:rgba(255,255,255,0.5); transition:transform .2s; flex-shrink:0; }
+.folder-group-arrow { font-size:11px; color:var(--muted); transition:transform .2s; flex-shrink:0; }
 .folder-group-arrow.open { transform:rotate(90deg); }
 .folder-group-body { display:none; padding:6px 0 0; }
 .folder-group-body.open { display:block; }
