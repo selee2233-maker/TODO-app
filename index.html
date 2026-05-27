@@ -216,9 +216,17 @@ select:focus { border-color:var(--blue); }
 }
 
 /* ── 2컬럼 ── */
-.todo-columns { display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start; }
+.todo-columns {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  grid-template-rows: auto 1fr;
+  column-gap:18px;
+  row-gap:12px;
+  align-items:start;
+}
+.todo-col-content { min-width:0; }
 
-.col-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.col-header { display:flex; align-items:center; justify-content:space-between; min-height:36px; align-self:end; }
 .col-title {
   font-size:12px; font-weight:700; color:var(--text);
   display:flex; align-items:center; gap:6px; text-transform:uppercase; letter-spacing:.5px;
@@ -445,11 +453,11 @@ select:focus { border-color:var(--blue); }
     padding-top: 60px; /* iOS 상태바 기본 여백 */
     padding-top: max(calc(env(safe-area-inset-top) + 16px), 60px);
   }
-  .todo-columns { grid-template-columns:1fr; gap:16px; }
+  .todo-columns { grid-template-columns:1fr; grid-template-rows:auto auto auto auto; row-gap:8px; column-gap:0; }
   .col-title { font-size:10px; letter-spacing:0; }
   .col-count { font-size:9px; padding:1px 6px; }
   .toggle-done-btn { font-size:9px; padding:3px 7px; white-space:nowrap; }
-  .col-header { flex-wrap:wrap; gap:4px; margin-bottom:8px; }
+  .col-header { flex-wrap:wrap; gap:4px; }
   .card-title { font-size:12px; }
   .card-main { padding:10px 11px; }
   .card { padding:12px; }
@@ -654,23 +662,21 @@ select:focus { border-color:var(--blue); }
     </div>
 
     <div class="todo-columns">
-      <div>
-        <div class="col-header">
-          <div class="col-title">📅 Daily Works <span class="col-count" id="dateCount">0</span></div>
-          <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
-            <button id="refreshBtn" class="toggle-done-btn" onclick="manualCarryOver()" title="이월 새로고침" style="padding:3px 7px;">🔄</button>
-            <button class="toggle-done-btn" onclick="toggleShow('date',this)">완료 숨기기</button>
-          </div>
+      <!-- Row 1: headers (same grid row → same height → same baseline) -->
+      <div class="col-header">
+        <div class="col-title">📅 Daily Works <span class="col-count" id="dateCount">0</span></div>
+        <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
+          <button id="refreshBtn" class="toggle-done-btn" onclick="manualCarryOver()" title="이월 새로고침" style="padding:3px 7px;">🔄</button>
+          <button class="toggle-done-btn" onclick="toggleShow('date',this)">완료 숨기기</button>
         </div>
-        <div id="dateList"></div>
       </div>
-      <div>
-        <div class="col-header">
-          <div class="col-title">📝 ToDo List <span class="col-count" id="nodateCount">0</span></div>
-          <button class="toggle-done-btn" onclick="toggleShow('nodate',this)">완료 숨기기</button>
-        </div>
-        <div id="nodateList" ondragover="event.preventDefault()" ondrop="event.preventDefault()"></div>
+      <div class="col-header">
+        <div class="col-title">📝 ToDo List <span class="col-count" id="nodateCount">0</span></div>
+        <button class="toggle-done-btn" onclick="toggleShow('nodate',this)">완료 숨기기</button>
       </div>
+      <!-- Row 2: content -->
+      <div class="todo-col-content" id="dateList"></div>
+      <div class="todo-col-content" id="nodateList" ondragover="event.preventDefault()" ondrop="event.preventDefault()"></div>
     </div>
   </div>
 
