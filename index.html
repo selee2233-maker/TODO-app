@@ -965,6 +965,8 @@ var openSubLists  = new Set();
 var openDetails   = new Set();
 var openMonths    = new Set(); // 최초에는 모든 월 그룹 닫혀있음
 var openFolderGroups = new Set(); // ToDo List 폴더 아코디언
+var openIdeaGroups = new Set(); // 아이디어 그룹 아코디언
+var openIdeaCats   = new Set(); // 아이디어 카테고리 내용 아코디언
 
 function selectListType(type, btn) {
   listType = type;
@@ -1092,18 +1094,20 @@ function addIdea() {
 
 // ── 토글 ──
 function toggleIdeaGroup(gid) {
+  if (openIdeaGroups.has(gid)) { openIdeaGroups.delete(gid); }
+  else { openIdeaGroups.add(gid); }
   var cats = document.getElementById('igcats-'+gid);
   var arr  = document.getElementById('igarr-'+gid);
-  if (!cats) return;
-  cats.classList.toggle('open');
-  if (arr) arr.classList.toggle('open');
+  if (cats) cats.classList.toggle('open', openIdeaGroups.has(gid));
+  if (arr)  arr.classList.toggle('open',  openIdeaGroups.has(gid));
 }
 function toggleIdeaCat(cid) {
+  if (openIdeaCats.has(cid)) { openIdeaCats.delete(cid); }
+  else { openIdeaCats.add(cid); }
   var body = document.getElementById('icbody-'+cid);
   var arr  = document.getElementById('icarr-'+cid);
-  if (!body) return;
-  body.classList.toggle('open');
-  if (arr) arr.classList.toggle('open');
+  if (body) body.classList.toggle('open', openIdeaCats.has(cid));
+  if (arr)  arr.classList.toggle('open',  openIdeaCats.has(cid));
 }
 
 // ── 삭제 ──
@@ -1163,19 +1167,21 @@ function renderIdeas() {
   }
   list.innerHTML = ideas.map(function(group) {
     var cats = group.categories || [];
+    var gOpen = openIdeaGroups.has(group.id);
     var catsHtml = cats.map(function(cat) {
       var hasContent = cat.content && cat.content.trim();
+      var cOpen = openIdeaCats.has(cat.id);
       return '<div class="idea-cat-item">'
         + '<div class="idea-cat-header" onclick="'+(hasContent ? 'toggleIdeaCat('+cat.id+')' : '')+'">'
         + '<span class="idea-cat-tag"># '+cat.name+'</span>'
         + '<span class="idea-cat-date">'+formatIdeaDate(cat.createdAt)+'</span>'
-        + (hasContent ? '<span class="idea-cat-arrow" id="icarr-'+cat.id+'">▼</span>' : '<span style="flex:0 0 16px"></span>')
+        + (hasContent ? '<span class="idea-cat-arrow'+(cOpen?' open':'')+'" id="icarr-'+cat.id+'">▼</span>' : '<span style="flex:0 0 16px"></span>')
         + '<div class="idea-cat-actions">'
         + '<button class="idea-cat-edit" onclick="event.stopPropagation();openIdeaEdit('+group.id+','+cat.id+')">✏️</button>'
         + '<button class="idea-cat-del"  onclick="event.stopPropagation();deleteIdeaCat('+group.id+','+cat.id+')">×</button>'
         + '</div>'
         + '</div>'
-        + (hasContent ? '<div class="idea-cat-body" id="icbody-'+cat.id+'">'+cat.content+'</div>' : '')
+        + (hasContent ? '<div class="idea-cat-body'+(cOpen?' open':'')+'" id="icbody-'+cat.id+'">'+cat.content+'</div>' : '')
         + '</div>';
     }).join('');
 
@@ -1184,10 +1190,10 @@ function renderIdeas() {
       + '<span class="idea-group-icon">💡</span>'
       + '<span class="idea-group-title">'+group.title+'</span>'
       + '<span class="idea-group-meta">'+cats.length+'개</span>'
-      + '<span class="idea-group-arrow" id="igarr-'+group.id+'">▼</span>'
+      + '<span class="idea-group-arrow'+(gOpen?' open':'')+'" id="igarr-'+group.id+'">▼</span>'
       + '<button class="idea-group-del" onclick="event.stopPropagation();deleteIdeaGroup('+group.id+')">×</button>'
       + '</div>'
-      + '<div class="idea-cats" id="igcats-'+group.id+'">'
+      + '<div class="idea-cats'+(gOpen?' open':'')+'" id="igcats-'+group.id+'">'
       + catsHtml
       + '</div>'
       + '</div>';
