@@ -446,8 +446,12 @@ select:focus { border-color:var(--blue); }
 .emoji-opt:hover { border-color:var(--blue-mid); }
 .emoji-opt.selected { border-color:var(--blue); background:var(--blue-soft); }
 
-/* ── 모바일 하단 네비게이션 ── */
-.mobile-nav-bar {
+/* ── 모바일 전용 요소: 기본적으로 모두 숨김 (PC에서 안 보임) ── */
+.mobile-nav-bar,
+.mobile-top-bar,
+.mobile-input-overlay,
+.mobile-folder-drawer,
+.mobile-drawer-overlay {
   display: none;
 }
 @media (max-width:700px) {
