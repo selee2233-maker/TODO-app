@@ -1334,12 +1334,31 @@ function toggleMobileSection(type) {
   mobileSectionOpen[type] = !mobileSectionOpen[type];
   var content = document.getElementById(type === 'date' ? 'dateList' : 'nodateList');
   var arrow   = document.getElementById(type === 'date' ? 'arrowDate' : 'arrowNodate');
-  if (content) content.classList.toggle('mobile-open', mobileSectionOpen[type]);
+  if (content) { content.style.display = mobileSectionOpen[type] ? 'block' : 'none'; }
   if (arrow)   arrow.classList.toggle('open', mobileSectionOpen[type]);
 }
 
 function initMobileSections() {
-  // CSS가 기본 숨김 처리하므로 별도 JS 초기화 불필요
+  if (window.innerWidth > 700) return;
+  mobileSectionOpen.date   = false;
+  mobileSectionOpen.nodate = false;
+  var dl = document.getElementById('dateList');
+  var nl = document.getElementById('nodateList');
+  var ad = document.getElementById('arrowDate');
+  var an = document.getElementById('arrowNodate');
+  if (dl) { dl.classList.remove('mobile-open'); dl.style.display = 'none'; }
+  if (nl) { nl.classList.remove('mobile-open'); nl.style.display = 'none'; }
+  if (ad) ad.classList.remove('open');
+  if (an) an.classList.remove('open');
+}
+
+// renderTodos / renderFolders 이후에도 섹션 상태 유지
+function applyMobileSectionState() {
+  if (window.innerWidth > 700) return;
+  var dl = document.getElementById('dateList');
+  var nl = document.getElementById('nodateList');
+  if (dl) { dl.style.display = mobileSectionOpen.date   ? 'block' : 'none'; }
+  if (nl) { nl.style.display = mobileSectionOpen.nodate ? 'block' : 'none'; }
 }
 
 // ── 모바일 입력 모달 ──
@@ -2287,6 +2306,8 @@ function renderTodos() {
     if (el) el.classList.add('open');
     if (ar) ar.classList.add('open');
   });
+  // 모바일 섹션 접힘 상태 유지 (렌더 후에도 상태 강제 적용)
+  applyMobileSectionState();
 }
 
 function closeModal(id, e) {
