@@ -551,6 +551,11 @@ select:focus { border-color:var(--blue); }
   .col-title { font-size:11px; letter-spacing:0; }
   .col-count { font-size:9px; padding:1px 6px; }
   .toggle-done-btn { font-size:9px; padding:3px 7px; white-space:nowrap; }
+  /* 모바일: 헤더-내용-헤더-내용 순서로 재배치 */
+  #colHeaderDate  { order:1; }
+  #dateList       { order:2; }
+  #colHeaderNodate{ order:3; }
+  #nodateList     { order:4; }
   /* 모바일 섹션 헤더: 탭 가능하게 */
   .col-header { flex-wrap:wrap; gap:4px; cursor:pointer; border-radius:14px; padding:10px 14px; background:linear-gradient(135deg,#f5eedb,#ede4c8); border:1.5px solid #ddd0aa; transition:background .15s; }
   .col-header:active { background:linear-gradient(135deg,#ede4c8,#e0d4a8); }
@@ -830,7 +835,7 @@ select:focus { border-color:var(--blue); }
 <!-- ── 모바일 하단 네비게이션 ── -->
 <div class="mobile-nav-bar" id="mobileNavBar">
   <button class="mobile-nav-btn active" id="mobileNavTodos" onclick="switchPage('todos')">
-    <span>📋</span><span>할일</span>
+    <span>📋</span><span>전체할일</span>
   </button>
   <div class="mobile-nav-add-wrap">
     <button class="mobile-nav-add" id="mobileNavAdd" onclick="toggleMobileInput()">＋</button>
