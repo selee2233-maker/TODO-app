@@ -1326,7 +1326,7 @@ function switchPage(page) {
 }
 
 // ── 모바일 섹션 접기/펼치기 (Daily Works / ToDo List) ──
-var mobileSectionOpen = { date: true, nodate: true }; // 처음엔 둘 다 펼침
+var mobileSectionOpen = { date: false, nodate: false }; // 처음엔 둘 다 접힘
 
 function toggleMobileSection(type) {
   if (window.innerWidth > 700) return; // PC에서는 동작 안 함
@@ -1339,11 +1339,15 @@ function toggleMobileSection(type) {
 
 function initMobileSections() {
   if (window.innerWidth > 700) return;
-  // 모바일 초기 상태: 둘 다 펼침, 화살표 표시
+  // 모바일 초기 상태: 둘 다 접힘
   ['date','nodate'].forEach(function(type) {
-    var arrow = document.getElementById(type === 'date' ? 'arrowDate' : 'arrowNodate');
-    if (arrow) arrow.classList.add('open');
-    mobileSectionOpen[type] = true;
+    var contentId = type === 'date' ? 'dateList' : 'nodateList';
+    var arrowId   = type === 'date' ? 'arrowDate' : 'arrowNodate';
+    var content = document.getElementById(contentId);
+    var arrow   = document.getElementById(arrowId);
+    if (content) content.classList.add('mobile-collapsed');
+    if (arrow)   arrow.classList.remove('open');
+    mobileSectionOpen[type] = false;
   });
 }
 
