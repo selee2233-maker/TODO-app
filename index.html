@@ -561,8 +561,9 @@ select:focus { border-color:var(--blue); }
   .col-header:active { background:linear-gradient(135deg,#ede4c8,#e0d4a8); }
   .mobile-section-arrow { display:inline-block; font-size:11px; color:var(--muted); transition:transform .2s; flex-shrink:0; }
   .mobile-section-arrow.open { transform:rotate(180deg); }
-  /* 섹션 내용 접기 */
-  .todo-col-content.mobile-collapsed { display:none; }
+  /* 모바일에서 섹션 내용은 기본 숨김, open 클래스 있을 때만 보임 */
+  .todo-col-content { display:none; }
+  .todo-col-content.mobile-open { display:block; }
   .card-title { font-size:12px; }
   .card-main { padding:10px 11px; }
   .card { padding:14px; }
@@ -1326,29 +1327,19 @@ function switchPage(page) {
 }
 
 // ── 모바일 섹션 접기/펼치기 (Daily Works / ToDo List) ──
-var mobileSectionOpen = { date: false, nodate: false }; // 처음엔 둘 다 접힘
+var mobileSectionOpen = { date: false, nodate: false };
 
 function toggleMobileSection(type) {
-  if (window.innerWidth > 700) return; // PC에서는 동작 안 함
+  if (window.innerWidth > 700) return;
   mobileSectionOpen[type] = !mobileSectionOpen[type];
   var content = document.getElementById(type === 'date' ? 'dateList' : 'nodateList');
   var arrow   = document.getElementById(type === 'date' ? 'arrowDate' : 'arrowNodate');
-  if (content) content.classList.toggle('mobile-collapsed', !mobileSectionOpen[type]);
+  if (content) content.classList.toggle('mobile-open', mobileSectionOpen[type]);
   if (arrow)   arrow.classList.toggle('open', mobileSectionOpen[type]);
 }
 
 function initMobileSections() {
-  if (window.innerWidth > 700) return;
-  // 모바일 초기 상태: 둘 다 접힘
-  ['date','nodate'].forEach(function(type) {
-    var contentId = type === 'date' ? 'dateList' : 'nodateList';
-    var arrowId   = type === 'date' ? 'arrowDate' : 'arrowNodate';
-    var content = document.getElementById(contentId);
-    var arrow   = document.getElementById(arrowId);
-    if (content) content.classList.add('mobile-collapsed');
-    if (arrow)   arrow.classList.remove('open');
-    mobileSectionOpen[type] = false;
-  });
+  // CSS가 기본 숨김 처리하므로 별도 JS 초기화 불필요
 }
 
 // ── 모바일 입력 모달 ──
