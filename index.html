@@ -451,7 +451,8 @@ select:focus { border-color:var(--blue); }
 .mobile-top-bar,
 .mobile-input-overlay,
 .mobile-folder-drawer,
-.mobile-drawer-overlay {
+.mobile-drawer-overlay,
+.mobile-section-arrow {
   display: none;
 }
 @media (max-width:700px) {
@@ -550,7 +551,13 @@ select:focus { border-color:var(--blue); }
   .col-title { font-size:11px; letter-spacing:0; }
   .col-count { font-size:9px; padding:1px 6px; }
   .toggle-done-btn { font-size:9px; padding:3px 7px; white-space:nowrap; }
-  .col-header { flex-wrap:wrap; gap:4px; }
+  /* 모바일 섹션 헤더: 탭 가능하게 */
+  .col-header { flex-wrap:wrap; gap:4px; cursor:pointer; border-radius:14px; padding:10px 14px; background:linear-gradient(135deg,#f5eedb,#ede4c8); border:1.5px solid #ddd0aa; transition:background .15s; }
+  .col-header:active { background:linear-gradient(135deg,#ede4c8,#e0d4a8); }
+  .mobile-section-arrow { display:inline-block; font-size:11px; color:var(--muted); transition:transform .2s; flex-shrink:0; }
+  .mobile-section-arrow.open { transform:rotate(180deg); }
+  /* 섹션 내용 접기 */
+  .todo-col-content.mobile-collapsed { display:none; }
   .card-title { font-size:12px; }
   .card-main { padding:10px 11px; }
   .card { padding:14px; }
@@ -908,16 +915,20 @@ select:focus { border-color:var(--blue); }
 
     <div class="todo-columns">
       <!-- Row 1: headers (same grid row → same height → same baseline) -->
-      <div class="col-header">
+      <div class="col-header" id="colHeaderDate" onclick="toggleMobileSection('date')">
         <div class="col-title">📅 Daily Works <span class="col-count" id="dateCount">0</span></div>
         <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
-          <button id="refreshBtn" class="toggle-done-btn" onclick="manualCarryOver()" title="이월 새로고침" style="padding:3px 7px;">🔄</button>
-          <button class="toggle-done-btn" onclick="toggleShow('date',this)">완료 숨기기</button>
+          <button id="refreshBtn" class="toggle-done-btn" onclick="event.stopPropagation();manualCarryOver()" title="이월 새로고침" style="padding:3px 7px;">🔄</button>
+          <button class="toggle-done-btn" onclick="event.stopPropagation();toggleShow('date',this)">완료 숨기기</button>
+          <span class="mobile-section-arrow" id="arrowDate">▼</span>
         </div>
       </div>
-      <div class="col-header">
+      <div class="col-header" id="colHeaderNodate" onclick="toggleMobileSection('nodate')">
         <div class="col-title">📝 ToDo List <span class="col-count" id="nodateCount">0</span></div>
-        <button class="toggle-done-btn" onclick="toggleShow('nodate',this)">완료 숨기기</button>
+        <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
+          <button class="toggle-done-btn" onclick="event.stopPropagation();toggleShow('nodate',this)">완료 숨기기</button>
+          <span class="mobile-section-arrow" id="arrowNodate">▼</span>
+        </div>
       </div>
       <!-- Row 2: content -->
       <div class="todo-col-content" id="dateList"></div>
@@ -1307,6 +1318,28 @@ function switchPage(page) {
   if (dnt) dnt.classList.toggle('active', page === 'todos');
   if (dni) dni.classList.toggle('active', page === 'ideas');
   if (page === 'ideas') { migrateIdeas(); renderIdeas(); }
+}
+
+// ── 모바일 섹션 접기/펼치기 (Daily Works / ToDo List) ──
+var mobileSectionOpen = { date: true, nodate: true }; // 처음엔 둘 다 펼침
+
+function toggleMobileSection(type) {
+  if (window.innerWidth > 700) return; // PC에서는 동작 안 함
+  mobileSectionOpen[type] = !mobileSectionOpen[type];
+  var content = document.getElementById(type === 'date' ? 'dateList' : 'nodateList');
+  var arrow   = document.getElementById(type === 'date' ? 'arrowDate' : 'arrowNodate');
+  if (content) content.classList.toggle('mobile-collapsed', !mobileSectionOpen[type]);
+  if (arrow)   arrow.classList.toggle('open', mobileSectionOpen[type]);
+}
+
+function initMobileSections() {
+  if (window.innerWidth > 700) return;
+  // 모바일 초기 상태: 둘 다 펼침, 화살표 표시
+  ['date','nodate'].forEach(function(type) {
+    var arrow = document.getElementById(type === 'date' ? 'arrowDate' : 'arrowNodate');
+    if (arrow) arrow.classList.add('open');
+    mobileSectionOpen[type] = true;
+  });
 }
 
 // ── 모바일 입력 모달 ──
@@ -2271,6 +2304,7 @@ function runStartup() {
   }, 60000);
   renderFolders();
   renderTodos();
+  initMobileSections();
 }
 
 // 아이디어 제목 입력에서 Enter → 내용 입력창으로 포커스
