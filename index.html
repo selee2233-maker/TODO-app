@@ -7,7 +7,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="할일">
 <title>할 일 목록</title>
-<link rel="apple-touch-icon" id="appIcon">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-180.png">
+<link rel="apple-touch-icon" sizes="192x192" href="apple-touch-icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" sizes="512x512" href="apple-touch-icon-512.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -1218,12 +1221,7 @@ if (savedCode) {
 }
 
 // 앱 아이콘
-var cv = document.createElement('canvas'); cv.width = cv.height = 180;
-var cx = cv.getContext('2d');
-cx.fillStyle='#1a1a1a'; cx.beginPath(); cx.roundRect(0,0,180,180,40); cx.fill();
-cx.fillStyle='#fff'; cx.font='bold 100px sans-serif'; cx.textAlign='center'; cx.textBaseline='middle';
-cx.fillText('✓',90,95);
-document.getElementById('appIcon').href = cv.toDataURL();
+// 아이콘은 apple-touch-icon-180.png 파일 사용 (캔버스 생성 제거)
 
 var EMOJIS = ['📁','💼','🏠','🛒','💡','📚','🎯','✈️','💪','🎨','🔧','📝','⭐','🚀','❤️','🎵'];
 var selectedEmoji = '📁';
