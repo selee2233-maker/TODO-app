@@ -2482,12 +2482,20 @@ function showNotifToast(msg) {
   setTimeout(function(){ t.style.opacity='0'; t.style.transition='opacity .4s'; setTimeout(function(){ t.remove(); }, 400); }, 3000);
 }
 
+var isWebApp = location.protocol === 'https:'; // Mac 앱(file://)에서는 알림 미지원
+
 function updateNotifButtons() {
+  var b1 = document.getElementById('notifSettingBtn');
+  var b2 = document.getElementById('notifSettingBtnDesktop');
+  // Mac 앱(WKWebView)에서는 버튼 숨김
+  if (!isWebApp) {
+    if (b1) b1.style.display = 'none';
+    if (b2) b2.style.display = 'none';
+    return;
+  }
   var perm = ('Notification' in window) ? Notification.permission : 'unsupported';
   var label = perm === 'granted' ? '🔔 알림 켜짐' : perm === 'denied' ? '🔕 알림 차단됨' : '🔔 알림 설정 (매일 오전 10시)';
   var labelShort = perm === 'granted' ? '🔔 알림 켜짐' : perm === 'denied' ? '🔕 알림 차단됨' : '🔔 알림 설정';
-  var b1 = document.getElementById('notifSettingBtn');
-  var b2 = document.getElementById('notifSettingBtnDesktop');
   if (b1) b1.textContent = labelShort;
   if (b2) b2.textContent = label;
 }
