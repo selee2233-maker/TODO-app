@@ -832,6 +832,7 @@ select:focus { border-color:var(--blue); }
   </div>
   <div id="drawerSyncArea" style="margin-top:auto;padding:16px 12px 8px;border-top:1px solid rgba(255,255,255,0.08);">
     <div style="font-size:9px;color:rgba(201,162,39,0.6);margin-bottom:8px;" id="drawerSyncStatus">✓ 동기화됨</div>
+    <button id="notifSettingBtn" onclick="requestNotificationPermission()" style="background:rgba(201,162,39,0.12);border:1px solid rgba(201,162,39,0.3);color:#c9a227;cursor:pointer;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;font-family:inherit;width:100%;margin-bottom:8px;">🔔 알림 설정</button>
     <button onclick="doSignOut()" style="background:none;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.4);cursor:pointer;border-radius:6px;padding:5px 12px;font-size:10px;font-family:inherit;width:100%;">로그아웃</button>
   </div>
 </div>
@@ -876,6 +877,9 @@ select:focus { border-color:var(--blue); }
       <div style="display:flex;align-items:center;justify-content:space-between;padding:0 2px 4px;">
         <div id="syncStatus" style="font-size:9px;color:rgba(201,162,39,0.7);">✓ 동기화됨</div>
         <button onclick="manualSync()" style="background:rgba(201,162,39,0.15);border:1px solid rgba(201,162,39,0.3);color:#c9a227;cursor:pointer;border-radius:6px;padding:3px 9px;font-size:10px;font-family:inherit;font-weight:600;white-space:nowrap;" title="지금 동기화">🔄 동기화</button>
+      </div>
+      <div style="padding:4px 2px 2px;">
+        <button id="notifSettingBtnDesktop" onclick="requestNotificationPermission()" style="background:rgba(201,162,39,0.12);border:1px solid rgba(201,162,39,0.3);color:#c9a227;cursor:pointer;border-radius:6px;padding:5px 10px;font-size:10px;font-weight:600;font-family:inherit;width:100%;">🔔 알림 설정 (매일 오전 10시)</button>
       </div>
     </div>
   </div>
@@ -2333,6 +2337,163 @@ document.getElementById('ideaTitleInput').addEventListener('keydown', function(e
 document.getElementById('ideaCategoryInput').addEventListener('keydown', function(e){
   if (e.key === 'Enter') { e.preventDefault(); document.getElementById('ideaContentInput').focus(); }
 });
+
+// ── 알림 기능 (매일 오전 10시) ──────────────────────────────────
+
+var swReg = null;
+
+function initNotifications() {
+  if (!('Notification' in window)) return;
+  if (!('serviceWorker' in navigator)) return;
+
+  // Service Worker 등록
+  navigator.serviceWorker.register('/TODO-app/sw.js').then(function(reg) {
+    swReg = reg;
+    if (Notification.permission === 'granted') {
+      scheduleSWNotification();
+      checkMorningBanner();
+    }
+  }).catch(function() {});
+
+  // 매분마다 10시 여부 확인 (앱이 열려 있을 때 보조)
+  setInterval(function() {
+    var now = new Date();
+    if (now.getHours() === 10 && now.getMinutes() === 0) {
+      var today = now.toISOString().slice(0, 10);
+      if (localStorage.getItem('lastDailyNotif') !== today) {
+        localStorage.setItem('lastDailyNotif', today);
+        showBrowserNotification();
+      }
+    }
+  }, 30000);
+}
+
+function requestNotificationPermission() {
+  if (!('Notification' in window)) {
+    alert('이 브라우저는 알림을 지원하지 않아요.');
+    return;
+  }
+  Notification.requestPermission().then(function(perm) {
+    if (perm === 'granted') {
+      scheduleSWNotification();
+      checkMorningBanner();
+      showNotifToast('✅ 매일 오전 10시에 알림을 보내드릴게요!');
+    } else {
+      showNotifToast('⚠️ 알림 권한이 거부되었어요. 브라우저 설정에서 허용해주세요.');
+    }
+    document.getElementById('notifSettingBtn').textContent =
+      perm === 'granted' ? '🔔 알림 켜짐' : '🔕 알림 꺼짐';
+  });
+}
+
+function scheduleSWNotification() {
+  if (!swReg || !swReg.active) {
+    navigator.serviceWorker.ready.then(function(reg) {
+      reg.active.postMessage({ type: 'SCHEDULE_DAILY', todos: JSON.stringify(todos) });
+    });
+  } else {
+    swReg.active.postMessage({ type: 'SCHEDULE_DAILY', todos: JSON.stringify(todos) });
+  }
+}
+
+function showBrowserNotification() {
+  if (Notification.permission !== 'granted') return;
+  var today     = new Date().toISOString().slice(0, 10);
+  var todayList = todos.filter(function(t) {
+    return t.date === today && !t.done && !(t.subItems && t.subItems.every(function(s){ return s.done; }));
+  });
+  var body = todayList.length === 0
+    ? '오늘 예정된 할 일이 없어요 😊'
+    : todayList.slice(0, 3).map(function(t){ return '• ' + (t.text || today); }).join('\n')
+      + (todayList.length > 3 ? '\n외 ' + (todayList.length - 3) + '개 더...' : '');
+
+  new Notification('📋 오늘의 할 일 (' + todayList.length + '개)', { body: body, icon: '/TODO-app/apple-touch-icon-192.png' });
+}
+
+function checkMorningBanner() {
+  var now   = new Date();
+  var today = now.toISOString().slice(0, 10);
+  if (now.getHours() >= 10 && localStorage.getItem('bannerDismissed') !== today) {
+    showMorningBanner();
+  }
+}
+
+function showMorningBanner() {
+  var existing = document.getElementById('morningBanner');
+  if (existing) return;
+
+  var today     = new Date().toISOString().slice(0, 10);
+  var todayList = todos.filter(function(t) {
+    return t.date === today && !t.done && !(t.subItems && t.subItems.every(function(s){ return s.done; }));
+  });
+
+  var items = todayList.length === 0
+    ? '<span style="color:var(--muted)">오늘 예정된 할 일이 없어요 😊</span>'
+    : todayList.slice(0, 5).map(function(t){
+        return '<div style="display:flex;align-items:center;gap:6px;padding:3px 0;">'
+          + '<span style="color:#c9a227">•</span>'
+          + '<span style="font-size:13px;">' + (t.text || '할 일') + '</span>'
+          + '</div>';
+      }).join('') + (todayList.length > 5 ? '<div style="font-size:11px;color:var(--muted);margin-top:4px;">외 '+(todayList.length-5)+'개 더</div>' : '');
+
+  var banner = document.createElement('div');
+  banner.id = 'morningBanner';
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#0a1628,#0f2347);color:#fff;padding:14px 16px 16px;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
+  banner.innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'
+    + '<div style="font-size:14px;font-weight:700;">📋 오늘의 할 일 <span style="background:rgba(201,162,39,0.25);color:#c9a227;border-radius:99px;padding:2px 8px;font-size:11px;">' + todayList.length + '개</span></div>'
+    + '<button onclick="dismissMorningBanner()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;">닫기</button>'
+    + '</div>'
+    + '<div style="padding:4px 0;">' + items + '</div>';
+
+  document.body.prepend(banner);
+
+  // 모바일 상단 바 아래로 내용 밀기
+  setTimeout(function() {
+    var h = banner.offsetHeight;
+    var tb = document.getElementById('mobileTopBar');
+    if (tb && window.innerWidth <= 700) tb.style.top = h + 'px';
+    var mains = document.querySelectorAll('.main');
+    mains.forEach(function(m) { m.style.paddingTop = (parseInt(m.style.paddingTop || 0) + h) + 'px'; });
+  }, 50);
+}
+
+function dismissMorningBanner() {
+  var banner = document.getElementById('morningBanner');
+  if (!banner) return;
+  var h = banner.offsetHeight;
+  banner.remove();
+  // 패딩 복구
+  var tb = document.getElementById('mobileTopBar');
+  if (tb) tb.style.top = '';
+  var mains = document.querySelectorAll('.main');
+  mains.forEach(function(m) {
+    var cur = parseInt(m.style.paddingTop || 0);
+    m.style.paddingTop = Math.max(0, cur - h) + 'px';
+  });
+  localStorage.setItem('bannerDismissed', new Date().toISOString().slice(0, 10));
+}
+
+function showNotifToast(msg) {
+  var t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#0f2347;color:#fff;padding:10px 18px;border-radius:99px;font-size:12px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.3);white-space:nowrap;';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function(){ t.style.opacity='0'; t.style.transition='opacity .4s'; setTimeout(function(){ t.remove(); }, 400); }, 3000);
+}
+
+function updateNotifButtons() {
+  var perm = ('Notification' in window) ? Notification.permission : 'unsupported';
+  var label = perm === 'granted' ? '🔔 알림 켜짐' : perm === 'denied' ? '🔕 알림 차단됨' : '🔔 알림 설정 (매일 오전 10시)';
+  var labelShort = perm === 'granted' ? '🔔 알림 켜짐' : perm === 'denied' ? '🔕 알림 차단됨' : '🔔 알림 설정';
+  var b1 = document.getElementById('notifSettingBtn');
+  var b2 = document.getElementById('notifSettingBtnDesktop');
+  if (b1) b1.textContent = labelShort;
+  if (b2) b2.textContent = label;
+}
+
+// 앱 로드 후 초기화
+setTimeout(function() { initNotifications(); updateNotifButtons(); }, 1000);
 </script>
 </body>
 </html>
