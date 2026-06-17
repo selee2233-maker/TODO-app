@@ -2355,23 +2355,21 @@ function initNotifications() {
     }
   }).catch(function() {});
 
-  // 30초마다 오전 10시 여부 확인
-  setInterval(function() {
-    var now = new Date();
-    if (now.getHours() === 10 && now.getMinutes() === 0) {
-      var today = now.toISOString().slice(0, 10);
-      if (localStorage.getItem('lastDailyNotif') !== today) {
-        localStorage.setItem('lastDailyNotif', today);
-        if (!isWebApp && localStorage.getItem('inAppAlarmEnabled') === 'true') {
-          // Mac 앱: 인앱 배너
-          showMorningBanner();
-        } else if (isWebApp) {
-          // 웹/PWA: 브라우저 알림
-          showBrowserNotification();
-        }
-      }
+  // 앱 열릴 때 + 매분마다: 오전 10시 이후면 바로 알림
+  function checkAndNotify() {
+    var now   = new Date();
+    var today = now.toISOString().slice(0, 10);
+    if (now.getHours() < 10) return; // 10시 전이면 스킵
+    if (localStorage.getItem('lastDailyNotif') === today) return; // 오늘 이미 알림 보냄
+    localStorage.setItem('lastDailyNotif', today);
+    if (!isWebApp && localStorage.getItem('inAppAlarmEnabled') === 'true') {
+      showMorningBanner();
+    } else if (isWebApp && Notification.permission === 'granted') {
+      showBrowserNotification();
     }
-  }, 30000);
+  }
+  checkAndNotify(); // 앱 열릴 때 즉시 체크
+  setInterval(checkAndNotify, 60000); // 이후 매분 체크
 }
 
 function requestNotificationPermission() {
@@ -2416,18 +2414,23 @@ function scheduleSWNotification() {
   }
 }
 
+function getActiveTodos() {
+  var today = new Date().toISOString().slice(0, 10);
+  return todos.filter(function(t) {
+    if (!t.date || t.date > today) return false;
+    if (t.subItems && t.subItems.length > 0) return !t.subItems.every(function(s){ return s.done; });
+    return !t.done;
+  });
+}
+
 function showBrowserNotification() {
   if (Notification.permission !== 'granted') return;
-  var today     = new Date().toISOString().slice(0, 10);
-  var todayList = todos.filter(function(t) {
-    return t.date === today && !t.done && !(t.subItems && t.subItems.every(function(s){ return s.done; }));
-  });
-  var body = todayList.length === 0
-    ? '오늘 예정된 할 일이 없어요 😊'
-    : todayList.slice(0, 3).map(function(t){ return '• ' + (t.text || today); }).join('\n')
-      + (todayList.length > 3 ? '\n외 ' + (todayList.length - 3) + '개 더...' : '');
-
-  new Notification('📋 오늘의 할 일 (' + todayList.length + '개)', { body: body, icon: '/TODO-app/apple-touch-icon-192.png' });
+  var list = getActiveTodos();
+  var body = list.length === 0
+    ? '오늘 할 일이 없어요 😊'
+    : list.slice(0, 4).map(function(t){ return '• ' + (t.text || t.date); }).join('\n')
+      + (list.length > 4 ? '\n외 ' + (list.length - 4) + '개 더...' : '');
+  new Notification('📋 오늘의 할 일 (' + list.length + '개)', { body: body, icon: '/TODO-app/apple-touch-icon-192.png' });
 }
 
 function checkMorningBanner() {
@@ -2442,10 +2445,7 @@ function showMorningBanner() {
   var existing = document.getElementById('morningBanner');
   if (existing) return;
 
-  var today     = new Date().toISOString().slice(0, 10);
-  var todayList = todos.filter(function(t) {
-    return t.date === today && !t.done && !(t.subItems && t.subItems.every(function(s){ return s.done; }));
-  });
+  var todayList = getActiveTodos();
 
   var items = todayList.length === 0
     ? '<span style="color:var(--muted)">오늘 예정된 할 일이 없어요 😊</span>'
